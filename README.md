@@ -60,6 +60,10 @@ uv run python -m openloop.fineweb --verify
 The frozen manifest records source checksums, membership checksums, and a snapshot
 hash. Raw data and membership Parquet files remain local.
 
+NAS-Bench-201 and HPO-B are also downloaded and verified through their official
+loaders. See the [tabular benchmark setup and load reports](data/tabular/README.md).
+Their dependencies are isolated in the optional `benchmarks` group.
+
 ## License
 
 Licensed under [Apache-2.0](LICENSE).

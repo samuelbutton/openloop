@@ -11,7 +11,11 @@ htmlcov/
 .DS_Store
 ledger.json
 research/autoresearch-mlx/
+research/nas-bench-201/
+research/hpo-b/
 BUILDPLAN.md
 data/fineweb-edu/raw/
 data/fineweb-edu/splits/
 data/fineweb-edu/freeze-*/
+data/tabular/raw/
+data/tabular/hpob/

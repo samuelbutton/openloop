@@ -1,0 +1,42 @@
+Loading HPO-B handler
+Loading data...
+{
+  "mode": "v3",
+  "splits": {
+    "train": {
+      "search_spaces": 16,
+      "tasks": 758,
+      "evaluations": 3279050
+    },
+    "validation": {
+      "search_spaces": 16,
+      "tasks": 91,
+      "evaluations": 1180786
+    },
+    "test": {
+      "search_spaces": 16,
+      "tasks": 86,
+      "evaluations": 1888080
+    }
+  },
+  "initialization_seeds": [
+    "test0",
+    "test1",
+    "test2",
+    "test3",
+    "test4"
+  ],
+  "smoke_query": {
+    "search_space": "4796",
+    "dataset": "23",
+    "dimensions": 3,
+    "configurations": 300,
+    "normalized_incumbent_history": [
+      0.8928611689375546,
+      0.8928611689375546
+    ]
+  },
+  "augmented_train_search_spaces": 176,
+  "elapsed_seconds": 11.87232279125601,
+  "peak_rss_bytes": 5079793664
+}
