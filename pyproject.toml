@@ -9,6 +9,7 @@ license-files = ["LICENSE"]
 dependencies = [
     "mlx>=0.32.3 ; platform_machine == 'arm64' and sys_platform == 'darwin'",
     "mlx-lm>=0.32.0 ; platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "pyarrow>=23,<24",
 ]
 
 [build-system]

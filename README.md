@@ -46,6 +46,20 @@ Use `--size`, `--warmup`, and `--repeats` to change the calibration workload.
 
 Linux CI checks the portable logic and skips the Metal integration test.
 
+## Frozen training data
+
+The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,
+with exact-content duplicates removed and stable 90/5/5 train, validation, and
+held-out memberships. Prepare or verify it from the repository root:
+
+```sh
+uv run python -m openloop.fineweb
+uv run python -m openloop.fineweb --verify
+```
+
+The frozen manifest records source checksums, membership checksums, and a snapshot
+hash. Raw data and membership Parquet files remain local.
+
 ## License
 
 Licensed under [Apache-2.0](LICENSE).

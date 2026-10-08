@@ -1,0 +1,24 @@
+{
+  "dataset": "HuggingFaceFW/fineweb-edu",
+  "revision": "87f09149ef4734204d70ed1d046ddc9ca3f2b8f9",
+  "subset": "sample/10BT (first three shards, not the full sample)",
+  "license": "ODC-By-1.0",
+  "dataset_card": "https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu/blob/87f09149ef4734204d70ed1d046ddc9ca3f2b8f9/README.md",
+  "shards": [
+    {
+      "path": "sample/10BT/000_00000.parquet",
+      "size_bytes": 2152819114,
+      "sha256": "b1ba7b2ce4cb5ea6ef42dca40263eabb85f37700d01693a68e9b30a31d78e871"
+    },
+    {
+      "path": "sample/10BT/001_00000.parquet",
+      "size_bytes": 2152222432,
+      "sha256": "3fcf2dc69cd52503986276d3d2d26a8c356d0f2ea28a0de4fdbda8cf87755693"
+    },
+    {
+      "path": "sample/10BT/002_00000.parquet",
+      "size_bytes": 2151796315,
+      "sha256": "547ae182d132c9f06b6ce63149567208ea9f57630bfd9b1a2938e504f0c9ebd7"
+    }
+  ]
+}
