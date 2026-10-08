@@ -1,0 +1,28 @@
+{
+  "repository": "https://github.com/trevin-creator/autoresearch-mlx",
+  "revision": "766a25ff22afa799efd8d0aa450a4348e4749df2",
+  "source_sha256": {
+    "train.py": "49f0993f10b5f8af223c6be272b067fe1c8b5171ee6f5add8ed177b71e459124",
+    "prepare.py": "561d40660b39628fbc9cc45430613534acaea23765c13b5fcd3c5563cf4983b1",
+    "rigor.py": "3cb737f439adb269e7babb1d98241308eebde7314fb6dd6b6a96dbaba1765e16",
+    "uv.lock": "d260945ae38ffc55443f7bdad5cf4c3b3b9b5313cf7cb36ca795ffe7422ca0ab"
+  },
+  "python": "3.12.13",
+  "macos": "26.6.2",
+  "chip": "Apple M4 Pro",
+  "ram_bytes": 25769803776,
+  "dependencies": {
+    "mlx": "0.31.0",
+    "mlx-metal": "0.31.0",
+    "numpy": "2.4.2",
+    "pyarrow": "23.0.1",
+    "rustbpe": "0.1.0",
+    "tiktoken": "0.12.0"
+  },
+  "commands": [
+    "uv sync --locked --python 3.12",
+    "uv run --locked prepare.py",
+    "uv run --locked train.py",
+    "uv run --locked rigor.py run \"unmodified upstream baseline\""
+  ]
+}

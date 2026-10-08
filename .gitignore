@@ -9,3 +9,9 @@ dist/
 .coverage
 htmlcov/
 .DS_Store
+ledger.json
+research/autoresearch-mlx/
+BUILDPLAN.md
+data/fineweb-edu/raw/
+data/fineweb-edu/splits/
+data/fineweb-edu/freeze-*/

@@ -1,0 +1,86 @@
+Downloading 000_00000.parquet (attempt 1)
+Downloading 001_00000.parquet (attempt 1)
+Downloading 002_00000.parquet (attempt 1)
+Indexed 000_00000.parquet: 726,000 source rows
+Indexed 001_00000.parquet: 729,000 source rows
+Indexed 002_00000.parquet: 727,000 source rows
+{
+  "format_version": 1,
+  "dataset": "HuggingFaceFW/fineweb-edu",
+  "revision": "87f09149ef4734204d70ed1d046ddc9ca3f2b8f9",
+  "subset": "sample/10BT (first three shards, not the full sample)",
+  "license": "ODC-By-1.0",
+  "source_sha256": "a4dd9a07db69e941e8af80f9a30ba6b45cc1f4c014f350fcc456851d86e4023f",
+  "policy": {
+    "version": 1,
+    "text_hash": "SHA-256 of exact UTF-8 text; no normalization",
+    "assignment": "first 8 digest bytes as big-endian uint64, modulo 10000",
+    "buckets": {
+      "train": [
+        0,
+        9000
+      ],
+      "val": [
+        9000,
+        9500
+      ],
+      "held_out": [
+        9500,
+        10000
+      ]
+    },
+    "duplicates": "keep first occurrence in source-shard order, then row order",
+    "membership_hash": "SHA-256 of ordered records: >HQ shard_index,row_index + text digest"
+  },
+  "pyarrow_version": "23.0.1",
+  "shards": [
+    {
+      "path": "sample/10BT/000_00000.parquet",
+      "size_bytes": 2152819114,
+      "sha256": "b1ba7b2ce4cb5ea6ef42dca40263eabb85f37700d01693a68e9b30a31d78e871",
+      "local_path": "raw/000_00000.parquet"
+    },
+    {
+      "path": "sample/10BT/001_00000.parquet",
+      "size_bytes": 2152222432,
+      "sha256": "3fcf2dc69cd52503986276d3d2d26a8c356d0f2ea28a0de4fdbda8cf87755693",
+      "local_path": "raw/001_00000.parquet"
+    },
+    {
+      "path": "sample/10BT/002_00000.parquet",
+      "size_bytes": 2151796315,
+      "sha256": "547ae182d132c9f06b6ce63149567208ea9f57630bfd9b1a2938e504f0c9ebd7",
+      "local_path": "raw/002_00000.parquet"
+    }
+  ],
+  "source_rows": [
+    726000,
+    729000,
+    727000
+  ],
+  "exact_duplicates_removed": 18340,
+  "splits": {
+    "train": {
+      "path": "splits/train.parquet",
+      "documents": 1947744,
+      "membership_sha256": "0f9d8b16b96b7b9365c83b65cc4f76f51df697ad716f0903f719464f84678912",
+      "sha256": "3581b1ac60a28c2c781f25cfe8792c33a98486cc5b02190fd0b33e2682e04b2c",
+      "size_bytes": 76322090
+    },
+    "val": {
+      "path": "splits/val.parquet",
+      "documents": 107770,
+      "membership_sha256": "a50301f184f785777acecc6135e1b636db4ce7b482d19d44f0ad1a0f759078ba",
+      "sha256": "b6e2ca97edd1a809c6724d015fd8a3bb4637ea685f9a1d4d5cdd6bdba2ed7144",
+      "size_bytes": 4447575
+    },
+    "held_out": {
+      "path": "splits/held_out.parquet",
+      "documents": 108146,
+      "membership_sha256": "8bdebdcfad0e045a2cafd5dd6e2ee1c3bf62084206a10bdd429352e26568c824",
+      "sha256": "6d33e35279be4f829ee404b37f1e6d4a143bd68b7d4975660d873d0a91eb57e2",
+      "size_bytes": 4461979
+    }
+  },
+  "snapshot_sha256": "93ea20c138c41e1e463324917a295a2d41b2fd1e4a1d01f690c889ff9d9ccb9f"
+}
