@@ -3,12 +3,12 @@ repos:
     hooks:
       - id: ruff-check
         name: Ruff lint
-        entry: uv run --locked ruff check
+        entry: uv run --locked ruff check --fix
         language: system
         types_or: [python, pyi]
       - id: ruff-format
         name: Ruff format
-        entry: uv run --locked ruff format --check
+        entry: uv run --locked ruff format
         language: system
         types_or: [python, pyi]
       - id: pyright

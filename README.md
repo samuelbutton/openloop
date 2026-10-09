@@ -67,6 +67,14 @@ variation.
 See the [ledger guide](docs/LEDGER.md) for the schema, API, and a synthetic example.
 The new SQLite ledger is separate from the setup record in `ledger.json`.
 
+## Loop interface
+
+[`openloop.loops`](docs/LOOPS.md) provides an `Env`-shaped contract through the
+ledger API. T0 supplies a planted objective with seeded noise. T1 adapts the pinned
+MLX training script to exact token budgets at screen and confirm fidelities.
+Candidate settings, frozen evaluators, and work limits are checked before publication.
+The [loop guide](docs/LOOPS.md) includes an offline example and native-worker requirements.
+
 ## Frozen training data
 
 The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,

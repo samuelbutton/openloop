@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-09",
+  "check": "compile and installed versions only",
+  "upstream_revision": "766a25ff22afa799efd8d0aa450a4348e4749df2",
+  "upstream_sha256": {
+    "train.py": "49f0993f10b5f8af223c6be272b067fe1c8b5171ee6f5add8ed177b71e459124",
+    "prepare.py": "561d40660b39628fbc9cc45430613534acaea23765c13b5fcd3c5563cf4983b1",
+    "uv.lock": "d260945ae38ffc55443f7bdad5cf4c3b3b9b5313cf7cb36ca795ffe7422ca0ab"
+  },
+  "python": "3.12.13",
+  "dependencies": {
+    "certifi": "2026.2.25",
+    "charset-normalizer": "3.4.5",
+    "idna": "3.11",
+    "mlx": "0.31.0",
+    "mlx-metal": "0.31.0",
+    "numpy": "2.4.2",
+    "pyarrow": "23.0.1",
+    "regex": "2026.2.28",
+    "requests": "2.32.5",
+    "rustbpe": "0.1.0",
+    "tiktoken": "0.12.0",
+    "urllib3": "2.6.3"
+  },
+  "adapter_hash": "b13743e035c34bb3b1ff445721ddfeaef4dc809c8d2b29b7dcfebf8e835f46d2",
+  "data_hash": "93ea20c138c41e1e463324917a295a2d41b2fd1e4a1d01f690c889ff9d9ccb9f",
+  "tokenizer_hash": "ebb01045205e74c7b77b27ccd565c3e94327a8b00579e5d92649d8158dd65920",
+  "fidelities": [
+    {
+      "name": "screen",
+      "training_tokens": 8388608,
+      "expected_updates": 128,
+      "program_sha256": "67b297b8c030d59d48373322bde653619d696726b0e4b4c4840d5826e204169d",
+      "compiled": true
+    },
+    {
+      "name": "confirm",
+      "training_tokens": 20971520,
+      "expected_updates": 320,
+      "program_sha256": "bc5b42c7da3ccc49c3b610ccd6a2081c2778e37c6fb12b08faf156f59948846a",
+      "compiled": true
+    }
+  ],
+  "native_training_executed": false
+}

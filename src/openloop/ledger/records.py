@@ -88,7 +88,9 @@ class Result:
     artifacts: Mapping[str, str] = field(default_factory=dict[str, str])
 
     def __post_init__(self) -> None:
-        if not (isinstance(self.metrics, Mapping) and isinstance(self.artifacts, Mapping)):
+        if not (
+            isinstance(self.metrics, Mapping) and isinstance(self.artifacts, Mapping)
+        ):
             raise InvalidInputError("Metrics and artifacts must be mappings")
         if not self.metrics:
             raise InvalidInputError("A completed result requires at least one metric")
