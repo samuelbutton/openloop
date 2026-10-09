@@ -14,6 +14,7 @@ from openloop.ledger import (
     Status,
     content_hash,
 )
+from openloop.ledger.validation import freeze_object
 
 from .models import (
     ContractError,
@@ -27,7 +28,12 @@ from .models import (
 
 
 class ExperimentEnv:
-    """One candidate, one work allowance, and immutable observations; no reset."""
+    """One candidate, one work allowance, and immutable observations; no reset.
+
+    The allowance is a per-instance limit on work this object will admit. It is
+    held in memory only: it does not survive a restart, and the ledger does not
+    record it. Durable campaign budgets are planned.
+    """
 
     def __init__(
         self,
@@ -47,17 +53,14 @@ class ExperimentEnv:
         self._spec = workload.spec
         self._ledger = ledger
         self._runner = runner
-        candidate = self.spec.inputs(
-            workload.normalize_config(config), LoopAction(0), environment_hash
-        )
-        self._config = candidate.config
+        self._config = freeze_object(workload.normalize_config(config))
         self._environment_hash = environment_hash
         self._remaining = budget
         self._hypothesis = hypothesis
         self._parents = tuple(parents)
         for parent in self._parents:
             ledger.get(parent)
-        self._candidate = candidate.candidate_hash
+        self._candidate = self._spec.candidate_hash(self._config)
         self._evidence = self._parents
         self._busy = False
         self._requests: dict[str, tuple[str, StepResult]] = {}
@@ -83,10 +86,13 @@ class ExperimentEnv:
         return self._observation()
 
     async def step(self, action: LoopAction) -> StepResult:
-        """Admit one sample; reserve its work before awaiting the trusted runner.
+        """Admit one sample; deduct its work before awaiting the trusted runner.
 
-        Failures retain the reservation because their actual work is unknown.
-        Reused completed results consume no additional work or statistical sample.
+        The check against the remaining allowance is conservative: it runs
+        before the ledger is consulted, so an action whose result would be a
+        free cache hit is still refused when it exceeds the allowance. Failures
+        keep the deduction because their actual work is unknown. Reused
+        completed results consume no additional work or statistical sample.
         """
         fingerprint = content_hash(action)
         if action.request_key is not None and action.request_key in self._requests:
@@ -147,6 +153,7 @@ class ExperimentEnv:
             observation,
             run.id,
             run.attempt_id,
+            run.status,
             run.result,
             executed,
             work_units,

@@ -479,3 +479,40 @@ with KilledLedger(sys.argv[1]) as ledger:
         assert completed.result == result
         assert isinstance(completed.result, Result)
         assert completed.result.metrics["val_bpb"] == Metric(1.75, "BPB")
+
+
+def test_observations_round_trip_and_legacy_payloads_default_empty(
+    ledger, inputs, result
+):
+    timed = replace(result, observations={"seconds": Metric(2.5, "seconds")})
+    run = ledger.submit(inputs)
+    ledger.start_stage(run.id, "execution")
+    ledger.start_stage(run.id, "evaluation")
+    completed = ledger.complete(run.id, timed)
+    assert completed.result is not None
+    assert completed.result.observations["seconds"] == Metric(2.5, "seconds")
+    assert ledger.get(run.id).result == timed
+
+    legacy = ledger.submit(replace(inputs, seed=inputs.seed + 1))
+    ledger.start_stage(legacy.id, "execution")
+    ledger.start_stage(legacy.id, "evaluation")
+    with ledger._transaction():  # pyright: ignore[reportPrivateUsage]
+        ledger._event(  # pyright: ignore[reportPrivateUsage]
+            legacy.attempt_id,
+            EventKind.SUCCEEDED,
+            {
+                "metrics": {
+                    "val_bpb": {
+                        "value": 1.0,
+                        "unit": "BPB",
+                        "direction": "minimize",
+                        "split": "validation",
+                        "sample_count": 1,
+                    }
+                },
+                "artifacts": {},
+            },
+        )
+    old = ledger.get(legacy.id)
+    assert old.result is not None
+    assert old.result.observations == {}

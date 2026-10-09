@@ -2,55 +2,53 @@
 
 from __future__ import annotations
 
-import math
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
+from itertools import pairwise
 from typing import Protocol
 
-from openloop.ledger.errors import InvalidInputError
-from openloop.ledger.identity import (
+from openloop.ledger import (
+    Direction,
     ExperimentInputs,
+    InvalidInputError,
     JSONValue,
+    Purpose,
     Reproducibility,
+    Result,
+    Status,
     canonical_json,
+    content_hash,
+)
+from openloop.ledger.validation import (
     check_digest,
     check_positive,
     check_text,
     coerce_enum,
-    content_hash,
     freeze_object,
 )
-from openloop.ledger.records import Direction, Purpose, Result
 
 
 class ContractError(InvalidInputError):
     """A loop action, candidate, or output violates the declared contract."""
 
 
-class FidelityName(StrEnum):
+class Phase(StrEnum):
+    """Verification phase of a sample. Held-out evaluation is not selectable."""
+
     SCREEN = "screen"
     CONFIRM = "confirm"
 
 
-def finite_number(value: JSONValue, label: str) -> float:
-    """Require a real finite number, without accepting booleans or numeric strings."""
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ContractError(f"{label} must be a finite number")
-    if not math.isfinite(value):
-        raise ContractError(f"{label} must be a finite number")
-    return float(value)
-
-
 @dataclass(frozen=True)
 class Fidelity:
-    name: FidelityName
+    """A named amount of work, in the loop's budget unit."""
+
+    name: str
     amount: int
 
     def __post_init__(self) -> None:
-        object.__setattr__(
-            self, "name", coerce_enum(FidelityName, self.name, "fidelity")
-        )
+        check_text(self.name)
         check_positive(self.amount)
 
 
@@ -97,36 +95,63 @@ class LoopSpec:
                 "reproducibility",
             ),
         )
-        if len(self.fidelities) != len(FidelityName) or {
-            item.name for item in self.fidelities
-        } != set(FidelityName):
-            raise ContractError("Declare exactly one screen and one confirm fidelity")
-        if (
-            self.fidelity(FidelityName.SCREEN).amount
-            > self.fidelity(FidelityName.CONFIRM).amount
-        ):
-            raise ContractError("Confirmation cannot cost less than screening")
+        fidelities = tuple(self.fidelities)
+        if not fidelities:
+            raise ContractError("Declare at least one fidelity")
+        if not all(isinstance(item, Fidelity) for item in fidelities):
+            raise ContractError("Fidelities must be typed")
+        if len({item.name for item in fidelities}) != len(fidelities):
+            raise ContractError("Fidelity names must be unique")
+        if any(lower.amount >= higher.amount for lower, higher in pairwise(fidelities)):
+            raise ContractError("Fidelity amounts must strictly increase")
         if len(set(self.mutable_keys)) != len(self.mutable_keys):
             raise ContractError("Mutable keys must be unique")
         for key in self.mutable_keys:
             check_text(key)
         canonical_json(self.execution)
         object.__setattr__(self, "execution", freeze_object(self.execution))
-        object.__setattr__(self, "fidelities", tuple(self.fidelities))
+        object.__setattr__(self, "fidelities", fidelities)
         object.__setattr__(self, "mutable_keys", tuple(self.mutable_keys))
 
     @property
     def hash(self) -> str:
         return content_hash(self)
 
-    def fidelity(self, name: FidelityName | str) -> Fidelity:
-        selected = coerce_enum(FidelityName, name, "fidelity")
-        return next(item for item in self.fidelities if item.name is selected)
+    def fidelity(self, name: str | None = None) -> Fidelity:
+        """Return the named fidelity, or the lowest when no name is given."""
+        if name is None:
+            return self.fidelities[0]
+        for item in self.fidelities:
+            if item.name == name:
+                return item
+        raise ContractError(f"Unknown fidelity: {name!r}")
+
+    def candidate_hash(self, config: Mapping[str, JSONValue]) -> str:
+        """Identify a candidate for this loop without choosing a seed or fidelity."""
+        return self._inputs(
+            config, 0, Phase.SCREEN.value, self.fidelity().name, "0" * 64
+        ).candidate_hash
 
     def inputs(
         self,
         config: Mapping[str, JSONValue],
         action: LoopAction,
+        environment_hash: str,
+    ) -> ExperimentInputs:
+        return self._inputs(
+            config,
+            action.seed,
+            str(action.phase),
+            self.fidelity(action.fidelity).name,
+            environment_hash,
+        )
+
+    def _inputs(
+        self,
+        config: Mapping[str, JSONValue],
+        seed: int,
+        phase: str,
+        fidelity: str,
         environment_hash: str,
     ) -> ExperimentInputs:
         return ExperimentInputs(
@@ -137,30 +162,35 @@ class LoopSpec:
             evaluator_hash=self.evaluator_hash,
             loop_hash=self.hash,
             tokenizer_hash=self.tokenizer_hash,
-            seed=action.seed,
-            fidelity=str(action.fidelity),
-            phase=str(action.fidelity),
+            seed=seed,
+            fidelity=fidelity,
+            phase=phase,
             budget_unit=self.budget_unit,
-            budget_amount=self.fidelity(action.fidelity).amount,
+            budget_amount=self.fidelity(fidelity).amount,
             reproducibility=self.reproducibility,
             config=config,
             execution=self.execution,
         )
 
     def validate_inputs(self, inputs: ExperimentInputs) -> None:
-        expected = self.inputs(
+        expected = self._inputs(
             inputs.config,
-            LoopAction(inputs.seed, self.fidelity(inputs.fidelity).name),
+            inputs.seed,
+            inputs.phase,
+            self.fidelity(inputs.fidelity).name,
             inputs.environment_hash,
         )
-        if inputs != expected:
+        if inputs != expected or inputs.phase not in {item.value for item in Phase}:
             raise ContractError("Input manifest differs from the frozen loop contract")
 
 
 @dataclass(frozen=True)
 class LoopAction:
+    """One sample request. `fidelity` None selects the lowest declared fidelity."""
+
     seed: int
-    fidelity: FidelityName | str = FidelityName.SCREEN
+    fidelity: str | None = None
+    phase: Phase | str = Phase.SCREEN
     request_key: str | None = None
     purpose: Purpose | str = Purpose.RUN
     retry_of: str | None = None
@@ -168,9 +198,9 @@ class LoopAction:
     def __post_init__(self) -> None:
         if type(self.seed) is not int or self.seed < 0:
             raise ContractError("Seed must be a nonnegative integer")
-        object.__setattr__(
-            self, "fidelity", coerce_enum(FidelityName, self.fidelity, "fidelity")
-        )
+        if self.fidelity is not None:
+            check_text(self.fidelity)
+        object.__setattr__(self, "phase", coerce_enum(Phase, self.phase, "phase"))
         object.__setattr__(
             self, "purpose", coerce_enum(Purpose, self.purpose, "purpose")
         )
@@ -215,14 +245,22 @@ class Observation:
     evidence: tuple[str, ...]
     budget_unit: str
     remaining_budget: int
-    permitted_fidelities: tuple[FidelityName, ...]
+    permitted_fidelities: tuple[str, ...]
 
 
 @dataclass(frozen=True)
 class StepResult:
+    """Outcome of one step.
+
+    `status` is the ledger status of the run: SUCCEEDED for a completed run
+    (new or reused), QUEUED or RUNNING for a reference to pending work with no
+    result yet, and FAILED when a request key replays a run that failed.
+    """
+
     observation: Observation
     run_id: str
     attempt_id: str
+    status: Status
     result: Result | None
     executed: bool
     work_units: int

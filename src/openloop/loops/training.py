@@ -7,7 +7,7 @@ import ast
 from collections.abc import Mapping
 from enum import StrEnum
 
-from openloop.ledger.identity import JSONValue, check_positive, freeze_object
+from openloop.ledger.validation import JSONValue, check_positive, freeze_object
 
 from .models import ContractError
 
@@ -125,13 +125,6 @@ class _TokenTraining(ast.NodeTransformer):
                 mode="eval",
             ).body
             self.stops += 1
-        self.generic_visit(node)
-        return node
-
-    def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.JoinedStr:
-        for part in node.values:
-            if isinstance(part, ast.Constant) and part.value == "s    ":
-                part.value = " tokens    "
         self.generic_visit(node)
         return node
 

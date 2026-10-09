@@ -194,8 +194,8 @@ class LoopEnv(Protocol):
 | Type | Content |
 | --- | --- |
 | `Observation` | Ledger evidence references, candidate identity, remaining budget, and permitted next actions. |
-| `LoopAction` | Request key, seed, fidelity, execution purpose, and retry reference. The candidate is fixed by the environment. |
-| `StepResult` | Next observation, run and attempt references, measurements, observed work, execution flag, and `episode_done`. |
+| `LoopAction` | Request key, seed, phase, fidelity, execution purpose, and retry reference. The candidate is fixed by the environment. |
+| `StepResult` | Next observation, run and attempt references, run status, measurements, observed work, execution flag, and `episode_done`. |
 
 One environment instance serves one candidate episode.
 Steps can cover a screen and planned confirmation runs.
@@ -213,7 +213,7 @@ Candidate code cannot supply its own authoritative score.
 
 T0 uses planted outcomes to test decisions and failures.
 T1 permits changes to declared training constants.
-Its adapter enforces exact token budgets and two fidelities against the pinned upstream source.
+Its adapter enforces exact token budgets at two fidelities, 8m and 21m tokens, against the pinned upstream source.
 The earlier upstream measurement used a time budget.
 No native token-budget run has been measured through the new adapter.
 Later loops use the same ledger and action types.

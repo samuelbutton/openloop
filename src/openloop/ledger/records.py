@@ -10,8 +10,8 @@ from enum import StrEnum
 from types import MappingProxyType
 
 from .errors import InvalidInputError
-from .identity import (
-    ExperimentInputs,
+from .identity import ExperimentInputs
+from .validation import (
     JSONValue,
     check_digest,
     check_positive,
@@ -82,27 +82,44 @@ class Metric:
 
 @dataclass(frozen=True)
 class Result:
-    """Trusted measurements. Decisions over several results are recorded elsewhere."""
+    """Trusted measurements. Decisions over several results are recorded elsewhere.
+
+    Metrics are the result being judged. Observations are operational
+    measurements, such as timing and throughput, that vary between identical
+    runs; comparisons and decisions ignore them.
+    """
 
     metrics: Mapping[str, Metric]
     artifacts: Mapping[str, str] = field(default_factory=dict[str, str])
+    observations: Mapping[str, Metric] = field(default_factory=dict[str, Metric])
 
     def __post_init__(self) -> None:
         if not (
-            isinstance(self.metrics, Mapping) and isinstance(self.artifacts, Mapping)
+            isinstance(self.metrics, Mapping)
+            and isinstance(self.artifacts, Mapping)
+            and isinstance(self.observations, Mapping)
         ):
-            raise InvalidInputError("Metrics and artifacts must be mappings")
+            raise InvalidInputError(
+                "Metrics, artifacts, and observations must be mappings"
+            )
         if not self.metrics:
             raise InvalidInputError("A completed result requires at least one metric")
         for name, metric in self.metrics.items():
             check_text(name)
             if not isinstance(metric, Metric):
                 raise InvalidInputError("Expected typed metrics")
+        for name, metric in self.observations.items():
+            check_text(name)
+            if not isinstance(metric, Metric):
+                raise InvalidInputError("Expected typed observations")
         for role, digest in self.artifacts.items():
             check_text(role)
             check_digest(digest)
         object.__setattr__(self, "metrics", MappingProxyType(dict(self.metrics)))
         object.__setattr__(self, "artifacts", MappingProxyType(dict(self.artifacts)))
+        object.__setattr__(
+            self, "observations", MappingProxyType(dict(self.observations))
+        )
 
 
 @dataclass(frozen=True)
@@ -181,7 +198,7 @@ def compare_results(
     atol: float = 0.0,
     rtol: float = 0.0,
 ) -> tuple[str, ...]:
-    """Compare metrics and artifact hashes, excluding timing and costs."""
+    """Compare metrics and artifact hashes, ignoring observations such as timing."""
     validate_tolerances(atol, rtol)
     differences: list[str] = []
     for name in sorted(baseline.metrics.keys() | repeat.metrics.keys()):

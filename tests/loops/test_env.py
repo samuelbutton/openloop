@@ -10,11 +10,11 @@ from openloop.loops import (
     T0,
     ContractError,
     ExperimentEnv,
-    FidelityName,
     Job,
     JobOutput,
     LoopAction,
     LoopEnv,
+    Phase,
 )
 
 
@@ -33,7 +33,7 @@ def test_single_contract_runs_both_fidelities(t0: T0, ledger: Ledger) -> None:
     env: LoopEnv = episode(t0, ledger)
     initial = asyncio.run(env.initial_observation())
     screen = asyncio.run(env.step(LoopAction(42)))
-    confirm = asyncio.run(env.step(LoopAction(43, FidelityName.CONFIRM)))
+    confirm = asyncio.run(env.step(LoopAction(43, "4x", Phase.CONFIRM)))
     assert initial.remaining_budget == 5
     assert screen.observation.remaining_budget == 4
     assert confirm.observation.remaining_budget == 0
@@ -41,6 +41,10 @@ def test_single_contract_runs_both_fidelities(t0: T0, ledger: Ledger) -> None:
     assert initial.candidate_hash == confirm.observation.candidate_hash
     assert screen.work_units == 1
     assert confirm.work_units == 4
+    assert screen.status is confirm.status is Status.SUCCEEDED
+    assert initial.permitted_fidelities == ("1x", "4x")
+    assert screen.observation.permitted_fidelities == ("1x", "4x")
+    assert confirm.observation.permitted_fidelities == ()
     assert len(ledger.query(status="succeeded")) == 2
     with pytest.raises(ContractError, match="remaining"):
         asyncio.run(env.step(LoopAction(44)))
@@ -53,6 +57,7 @@ def test_completed_cache_hit_is_not_new_work(t0: T0, ledger: Ledger) -> None:
     reused = asyncio.run(env.step(LoopAction(42)))
     assert first.executed
     assert not reused.executed
+    assert first.status is reused.status is Status.SUCCEEDED
     assert reused.work_units == 0
     assert reused.attempt_id == first.attempt_id
     assert reused.observation.remaining_budget == 4
@@ -72,7 +77,7 @@ def test_request_replay_does_not_charge_twice(t0: T0, ledger: Ledger) -> None:
     assert len(ledger.query()) == 1
 
 
-def test_runner_failure_preserves_evidence_and_reservation(
+def test_runner_failure_preserves_evidence_and_allowance(
     t0: T0, ledger: Ledger
 ) -> None:
     async def crash(job: Job) -> JobOutput:
@@ -170,3 +175,50 @@ def test_contract_change_during_execution_cannot_publish(
         asyncio.run(env.step(LoopAction(42)))
     assert ledger.query(status="succeeded") == ()
     assert len(ledger.query(status="failed")) == 1
+
+
+def test_pending_cache_reference_has_unresolved_status(t0: T0, ledger: Ledger) -> None:
+    env = episode(t0, ledger)
+    action = LoopAction(42)
+    pending = ledger.submit(
+        t0.spec.inputs(t0.normalize_config({"coordinates": [0, 0]}), action, "a" * 64)
+    )
+    step = asyncio.run(env.step(action))
+    assert step.status is Status.QUEUED
+    assert step.result is None
+    assert not step.executed
+    assert step.work_units == 0
+    assert step.run_id != pending.id
+    assert step.attempt_id == pending.attempt_id
+    assert step.observation.remaining_budget == 5
+
+
+def test_request_key_replay_of_failed_run_reports_failure(
+    t0: T0, ledger: Ledger
+) -> None:
+    env = episode(t0, ledger)
+    action = LoopAction(42, request_key="earlier-attempt")
+    failed = ledger.submit(
+        t0.spec.inputs(t0.normalize_config({"coordinates": [0, 0]}), action, "a" * 64),
+        request_key="earlier-attempt",
+    )
+    ledger.start_stage(failed.id, "execution")
+    ledger.fail(failed.id, "crashed elsewhere")
+    step = asyncio.run(env.step(action))
+    assert step.status is Status.FAILED
+    assert step.result is None
+    assert not step.executed
+    assert step.observation.remaining_budget == 5
+
+
+def test_candidate_hash_matches_experiment_candidate(t0: T0, ledger: Ledger) -> None:
+    env = episode(t0, ledger)
+    step = asyncio.run(env.step(LoopAction(42)))
+    config = t0.normalize_config({"coordinates": [0, 0]})
+    assert t0.spec.candidate_hash(config) == step.observation.candidate_hash
+    assert (
+        ledger.get(step.run_id).inputs.candidate_hash == step.observation.candidate_hash
+    )
+    assert t0.spec.candidate_hash(t0.normalize_config({"coordinates": [1, 0]})) != (
+        step.observation.candidate_hash
+    )

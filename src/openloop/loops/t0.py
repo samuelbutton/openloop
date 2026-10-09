@@ -17,17 +17,15 @@ from openloop.ledger import (
     Result,
     content_hash,
 )
-from openloop.ledger.identity import freeze_object
+from openloop.ledger.validation import finite_number, freeze_object
 
 from .files import adapter_digest
 from .models import (
     ContractError,
     Fidelity,
-    FidelityName,
     Job,
     JobOutput,
     LoopSpec,
-    finite_number,
 )
 
 
@@ -68,7 +66,14 @@ class PlantedTruth:
 
 
 class T0:
-    """Known optimum and known Gaussian noise; identical seeds reproduce samples."""
+    """Known optimum and known Gaussian noise.
+
+    Noise is drawn from the full experiment identity, so identical inputs
+    reproduce their samples while other candidates, fidelities, or phases at
+    the same seed receive independent draws. A seed alone must not select the
+    noise: that would reuse draws across a screen and its confirmation and
+    cancel noise in paired comparisons, understating false acceptances.
+    """
 
     def __init__(self, truth: PlantedTruth | None = None) -> None:
         self._truth = truth if truth is not None else PlantedTruth()
@@ -83,8 +88,8 @@ class T0:
             budget_unit="observations",
             reproducibility=Reproducibility.DETERMINISTIC,
             fidelities=(
-                Fidelity(FidelityName.SCREEN, 1),
-                Fidelity(FidelityName.CONFIRM, 4),
+                Fidelity("1x", 1),
+                Fidelity("4x", 4),
             ),
             mutable_keys=("coordinates",),
             metric_name="loss",
@@ -106,13 +111,9 @@ class T0:
         if set(config) != set(self.spec.mutable_keys):
             raise ContractError("T0 permits only the coordinates setting")
         values = config["coordinates"]
-        if not isinstance(values, (list, tuple)) or any(
-            type(value) not in (int, float) for value in values
-        ):
-            raise ContractError("Coordinates must be finite numbers")
+        if not isinstance(values, (list, tuple)):
+            raise ContractError("Coordinates must be a sequence of numbers")
         coordinates = tuple(finite_number(value, "Coordinate") for value in values)
-        if any(not math.isfinite(value) for value in coordinates):
-            raise ContractError("Coordinates must be finite numbers")
         self.truth.loss(coordinates)
         return freeze_object({"coordinates": coordinates})
 
@@ -129,7 +130,7 @@ class T0:
             raise ContractError("Coordinates must be a sequence")
         coordinates = tuple(finite_number(value, "Coordinate") for value in values)
         truth = self.truth.loss(coordinates)
-        rng = random.Random(job.inputs.seed)
+        rng = random.Random(int(job.inputs.hash, 16))
         return freeze_object(
             {
                 "samples": tuple(

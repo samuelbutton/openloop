@@ -12,10 +12,11 @@ from openloop.loops import (
     T1,
     ContractError,
     ExperimentEnv,
-    FidelityName,
     LoopAction,
+    Phase,
     TrainingSource,
 )
+from openloop.loops.t1 import LOG_TAIL_CHARACTERS
 from openloop.loops.t1_worker import run_training, verify_runtime
 
 
@@ -31,13 +32,13 @@ def test_two_token_fidelities_complete_through_shared_contract(
         budget=8_388_608 + 20_971_520,
     )
     screen = asyncio.run(env.step(LoopAction(42)))
-    confirm = asyncio.run(env.step(LoopAction(43, FidelityName.CONFIRM)))
+    confirm = asyncio.run(env.step(LoopAction(43, "21m", Phase.CONFIRM)))
     assert screen.work_units == 8_388_608
     assert confirm.work_units == 20_971_520
     assert confirm.episode_done
     assert screen.result is not None
     assert screen.result.metrics["val_bpb"].value == 1.75
-    assert screen.result.metrics["tokens_per_second"].value == 65536
+    assert screen.result.observations["tokens_per_second"].value == 65536
     assert ledger.get(screen.run_id).inputs.reproducibility == "noisy"
 
 
@@ -153,7 +154,9 @@ Path({str(marker)!r}).write_text(str(os.getpid()))
 time.sleep(3600)
 """
     )
-    loop = T1(replace(t1.source, prepare=prepare), t1.corpus, t1.tokenizer_dir)
+    loop = T1(
+        replace(t1.source, prepare=prepare), t1.corpus, t1.tokenizer_dir, t1.python
+    )
     env = ExperimentEnv(
         loop,
         ledger,
@@ -179,3 +182,39 @@ time.sleep(3600)
         os.kill(int(marker.read_text()), 0)
     assert len(ledger.query(status="failed")) == 1
     assert asyncio.run(env.initial_observation()).remaining_budget == 0
+
+
+def run_failing_worker(t1: T1, failure: str) -> str:
+    prepare = t1.source.prepare + "\nimport sys\n" + failure
+    loop = T1(
+        replace(t1.source, prepare=prepare), t1.corpus, t1.tokenizer_dir, t1.python
+    )
+    inputs = loop.spec.inputs(loop.normalize_config({}), LoopAction(42), "a" * 64)
+    with pytest.raises(ContractError) as error:
+        asyncio.run(loop.run(loop.build_job(inputs)))
+    return str(error.value)
+
+
+def test_failure_reason_includes_stdout_when_stderr_is_empty(t1: T1) -> None:
+    reason = run_failing_worker(t1, "print('FAIL')\nsys.exit(1)\n")
+    assert "exit code 1" in reason
+    assert "--- stdout tail ---\nFAIL" in reason
+
+
+def test_failure_reason_keeps_only_bounded_tails(t1: T1) -> None:
+    reason = run_failing_worker(
+        t1,
+        "print('S' * 20000 + 'STDOUT-END')\n"
+        "sys.stderr.write('E' * 20000 + 'STDERR-END')\n"
+        "sys.exit(1)\n",
+    )
+    assert reason.endswith("STDERR-END")
+    assert "STDOUT-END" in reason
+    assert "S" * (LOG_TAIL_CHARACTERS + 1) not in reason
+    assert "E" * (LOG_TAIL_CHARACTERS + 1) not in reason
+    assert len(reason) < 3 * LOG_TAIL_CHARACTERS
+
+
+def test_worker_python_stays_out_of_the_specification(t1: T1, tmp_path: Path) -> None:
+    other = T1(t1.source, t1.corpus, t1.tokenizer_dir, tmp_path / "elsewhere/python")
+    assert other.spec == t1.spec

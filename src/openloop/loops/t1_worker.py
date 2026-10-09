@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from openloop.ledger import ExperimentInputs, canonical_json
-from openloop.ledger.identity import freeze_object
+from openloop.ledger.validation import freeze_object
 
 from .models import ContractError, Job, JobOutput
 
@@ -63,7 +63,7 @@ def run_training(loop: T1, job: Job) -> JobOutput:
         raise ContractError("Worker requires the exact generated training program")
     start = time.monotonic()
     verify_runtime(loop.source.lock)
-    loop.corpus.verify()
+    loop.corpus.verify_for_reading()
     if tokenizer_digest(loop.tokenizer_dir) != loop.spec.tokenizer_hash:
         raise ContractError("Frozen tokenizer changed")
     prepare: dict[str, object] = {"__name__": "frozen_prepare"}
@@ -126,6 +126,7 @@ def main() -> None:
         TrainingSource(**payload["source"]),
         Corpus.load(Path(payload["corpus_root"])),
         Path(payload["tokenizer_dir"]),
+        Path(sys.executable),
     )
     job = Job(ExperimentInputs(**payload["job"]["inputs"]), payload["job"]["program"])
     output = run_training(loop, job)

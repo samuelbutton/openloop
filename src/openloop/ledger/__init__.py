@@ -15,7 +15,6 @@ from .errors import (
 from .identity import (
     IDENTITY_VERSION,
     ExperimentInputs,
-    JSONValue,
     Reproducibility,
     canonical_json,
     content_hash,
@@ -38,6 +37,7 @@ from .records import (
 )
 from .schema import SCHEMA_VERSION
 from .store import Ledger
+from .validation import JSONValue
 
 __all__ = [
     "IDENTITY_VERSION",

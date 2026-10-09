@@ -32,6 +32,16 @@ The candidate hash covers the identity version, source hash, dependencies hash, 
 It ignores the seed, fidelity, phase, data, evaluator, and other experiment settings.
 Use it to group the samples of one candidate across seeds.
 
+`openloop.ledger.validation` is the public home of the shared validators and the `JSONValue` type.
+It provides `check_digest`, `check_text`, `check_positive`, `coerce_enum`, `finite_number`, `plain`, `freeze`, and `freeze_object`.
+Each raises `InvalidInputError`.
+Loops and other callers import them from there, not from `identity`.
+
+A `Result` holds `metrics`, which are the measurements being judged.
+It also holds `observations`, which are operational measurements such as timing and throughput.
+`compare_results` and decisions ignore observations, so repeated runs do not differ only by speed.
+Results published before observations existed read back with none.
+
 Allowed values come from enums: `Purpose`, `Status`, `Stage`, `PreparationStage`, `Direction`, and `Reproducibility`.
 Methods accept enum members or plain strings.
 SQL `CHECK` clauses are built from the same enums.
@@ -75,7 +85,7 @@ Use one `Ledger` connection per thread.
 | `query(...)` | Filter by status, input hash, candidate hash, or purpose. Support `limit` and `offset`. Exclude reused submissions by default. |
 | `record_preparation(run_id, stage, ...)` | Record actual proposal or implementation times for a submission. Reject overlapping stages and unknown timezones. |
 | `start_stage(run_id, stage)` | Close the current stage and start a later stage in one transaction. |
-| `complete(run_id, result)` | Publish trusted typed metrics and artifact hashes. Require execution and evaluation stages. |
+| `complete(run_id, result)` | Publish trusted typed metrics, artifact hashes, and operational observations. Require execution and evaluation stages. |
 | `fail(run_id, reason)` | Close the active stage and preserve the failure reason. |
 | `record_probe(baseline_id, repeat_id, result, ...)` | Complete a replication, compare it with the baseline, and persist the comparison in one transaction. |
 | `probes(run_id)` | Read stored probe comparisons for a baseline. |

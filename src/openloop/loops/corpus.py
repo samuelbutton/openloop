@@ -11,9 +11,16 @@ from pathlib import Path
 import pyarrow.parquet as pq
 
 from openloop.fineweb import load_manifest, verify_file
-from openloop.ledger.identity import coerce_enum
+from openloop.ledger.validation import coerce_enum
 
 from .models import ContractError
+
+
+def _verify_file(path: Path, expected: dict) -> None:
+    try:
+        verify_file(path, expected)
+    except ValueError as error:
+        raise ContractError(str(error)) from error
 
 
 class DataSplit(StrEnum):
@@ -34,21 +41,40 @@ class Corpus:
         return cls(root.resolve(), manifest["snapshot_sha256"])
 
     def verify(self) -> None:
+        """Hash every raw shard and membership file. Slow; use for explicit audits."""
+        manifest = self._current_manifest()
+        for shard in manifest["shards"]:
+            _verify_file(self.root / shard["local_path"], shard)
+        for split in DataSplit:
+            expected = manifest["splits"][split]
+            _verify_file(self.root / expected["path"], expected)
+
+    def verify_for_reading(self) -> None:
+        """Check the manifest snapshot, membership file hashes, and raw shard sizes.
+
+        Per-job check. It does not hash raw shards, which are gigabytes.
+        `texts` compares each yielded document with its membership digest,
+        so corruption in any document that a job uses is still rejected.
+        """
+        manifest = self._current_manifest()
+        for shard in manifest["shards"]:
+            path = self.root / shard["local_path"]
+            if path.stat().st_size != shard["size_bytes"]:
+                raise ContractError(f"Raw shard size changed: {path}")
+        for split in DataSplit:
+            expected = manifest["splits"][split]
+            _verify_file(self.root / expected["path"], expected)
+
+    def _current_manifest(self) -> dict:
         manifest = load_manifest(self.root)
         if manifest["snapshot_sha256"] != self.snapshot_hash:
             raise ContractError("FineWeb snapshot changed")
-        for shard in manifest["shards"]:
-            verify_file(self.root / shard["local_path"], shard)
-        for split in DataSplit:
-            expected = manifest["splits"][split]
-            verify_file(self.root / expected["path"], expected)
+        return manifest
 
     def texts(self, split: DataSplit | str) -> Iterator[str]:
         """Yield exact selected texts in membership order, with digest validation."""
         split = coerce_enum(DataSplit, split, "data split")
-        manifest = load_manifest(self.root)
-        if manifest["snapshot_sha256"] != self.snapshot_hash:
-            raise ContractError("FineWeb snapshot changed")
+        manifest = self._current_manifest()
         membership = self.root / manifest["splits"][split]["path"]
         references = (
             row

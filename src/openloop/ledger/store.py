@@ -19,16 +19,7 @@ from .errors import (
     InvalidTransitionError,
     NotFoundError,
 )
-from .identity import (
-    ExperimentInputs,
-    Reproducibility,
-    canonical_json,
-    check_digest,
-    check_positive,
-    check_text,
-    coerce_enum,
-    freeze_object,
-)
+from .identity import ExperimentInputs, Reproducibility, canonical_json
 from .records import (
     Event,
     EventKind,
@@ -44,6 +35,13 @@ from .records import (
     compare_results,
 )
 from .schema import ensure_schema
+from .validation import (
+    check_digest,
+    check_positive,
+    check_text,
+    coerce_enum,
+    freeze_object,
+)
 
 _STAGE_ORDER = tuple(Stage)
 
@@ -151,6 +149,10 @@ class Ledger:
                     for name, metric in payload["metrics"].items()
                 },
                 artifacts=payload["artifacts"],
+                observations={
+                    name: Metric(**metric)
+                    for name, metric in payload.get("observations", {}).items()
+                },
             )
         purpose = Purpose(row["purpose"])
         return Run(

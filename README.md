@@ -71,7 +71,7 @@ The new SQLite ledger is separate from the setup record in `ledger.json`.
 
 [`openloop.loops`](docs/LOOPS.md) provides an `Env`-shaped contract through the
 ledger API. T0 supplies a planted objective with seeded noise. T1 adapts the pinned
-MLX training script to exact token budgets at screen and confirm fidelities.
+MLX training script to exact token budgets at two fidelities (8m and 21m tokens).
 Candidate settings, frozen evaluators, and work limits are checked before publication.
 The [loop guide](docs/LOOPS.md) includes an offline example and native-worker requirements.
 

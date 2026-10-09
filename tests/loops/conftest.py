@@ -1,6 +1,7 @@
 """Tiny frozen data and CPU-only source stand-ins; never use native MLX training."""
 
 import json
+import sys
 from pathlib import Path
 
 import pyarrow as pa
@@ -115,4 +116,5 @@ def t1(corpus: Corpus, tmp_path: Path) -> T1:
         TrainingSource(TOY_TRAIN, TOY_PREPARE, "version = 1\npackage = []"),
         corpus,
         tokenizer,
+        Path(sys.executable),
     )
