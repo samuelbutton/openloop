@@ -14,7 +14,7 @@ Expect expert infrastructure engineers and ML researchers to read every line.
 ```sh
 uv sync --locked
 uv run pre-commit install
-uv run pre-commit run --all-files   # ruff lint and format
+uv run pre-commit run --all-files   # Ruff safe fixes, formatting, and Pyright
 uv run pyright                      # static types
 uv run pytest
 ```
@@ -22,6 +22,18 @@ uv run pytest
 A change is complete only when all checks pass locally.
 CI runs the same commands.
 Commit `uv.lock` with every dependency change.
+
+Open this repository folder in VS Code and install its recommended extensions.
+The workspace settings use Ruff from `.venv/bin/ruff`, installed by `uv sync --locked`,
+and read the lint and format rules from `pyproject.toml`.
+Python files are formatted and receive safe lint fixes and import sorting on save.
+Pylance checks the workspace using the existing `[tool.pyright]` configuration.
+If VS Code has already selected another interpreter, use **Python: Select Interpreter**
+to select `.venv/bin/python`.
+
+The installed pre-commit hook also applies safe lint fixes and formatting.
+If a hook changes files, review and stage the changes, then retry the commit.
+Errors without a safe automatic fix still require a manual correction.
 
 ## Scope
 

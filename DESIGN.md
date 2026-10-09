@@ -19,7 +19,9 @@ Experiment inputs declare whether results are deterministic or noisy.
 `openloop.probe` runs determinism probes through the ledger API.
 The [ledger guide](docs/LEDGER.md) describes its API and schema.
 Campaign records, artifact storage, and spend records remain planned extensions.
-The loop interface, executors, decider, application spend gate, and plugins are not implemented.
+The [loop interface and T0/T1 adapters](docs/LOOPS.md) are implemented.
+T1 job generation and CPU stand-ins are checked; native training remains unverified.
+The general executors, decider, application spend gate, and plugins are not implemented.
 The [model configuration](config/models.toml) selects `gpt-6-astra` as proposer and `gpt-6.1-sol` through Codex CLI as implementer.
 The [billing configuration](config/billing.toml) records a $10 monthly OpenAI limit and $10 of RunPod credit.
 RunPod auto-pay is off.
@@ -168,10 +170,11 @@ The core checks its invariants before execution and after output collection.
 | Invariants | Protected file hashes, resource limits, artifact rules, and allowed network access. |
 | Verification | Seed schedule, comparator, minimum effect, decision policy, and held-out release rule. |
 
-The proposed Python signature follows the single-use shape of Tinker Cookbook's [`Env`][tinker-env].
+The Python signature follows the single-use shape of Tinker Cookbook's [`Env`][tinker-env].
 That interface has `initial_observation` and `step`; it has no `reset` method.
 Openloop uses structured experiment actions instead of generated token IDs.
-This is a proposed contract, not an implemented Tinker adapter.
+The contract is implemented in `openloop.loops`.
+It is not a Tinker SDK adapter.
 
 ```python
 from __future__ import annotations
@@ -191,12 +194,13 @@ class LoopEnv(Protocol):
 | Type | Content |
 | --- | --- |
 | `Observation` | Ledger evidence references, candidate identity, remaining budget, and permitted next actions. |
-| `LoopAction` | Request key, candidate hash, phase, seed, fidelity, and execution purpose. |
-| `StepResult` | Next observation, attempt references, measurement references, decision references, actual cost, and `episode_done`. |
+| `LoopAction` | Request key, seed, phase, fidelity, execution purpose, and retry reference. The candidate is fixed by the environment. |
+| `StepResult` | Next observation, run and attempt references, run status, measurements, observed work, execution flag, and `episode_done`. |
 
 One environment instance serves one candidate episode.
 Steps can cover a screen and planned confirmation runs.
-The episode ends after a terminal decision or budget exhaustion.
+The current episode ends when its remaining allowance cannot fund another fidelity.
+The later decider can end it after a terminal decision.
 The coordinator owns shared storage and executors across episodes.
 Cancellation records an event and preserves all collected evidence.
 
@@ -208,9 +212,10 @@ The decider returns a recorded decision.
 Candidate code cannot supply its own authoritative score.
 
 T0 uses planted outcomes to test decisions and failures.
-T1 permits changes to the declared MLX training surface.
-Its adapter will add token budgets and two fidelities to the pinned upstream experiment.
-The existing upstream run used a time budget; it has not satisfied that contract.
+T1 permits changes to declared training constants.
+Its adapter enforces exact token budgets at two fidelities, 8m and 21m tokens, against the pinned upstream source.
+The earlier upstream measurement used a time budget.
+No native token-budget run has been measured through the new adapter.
 Later loops use the same ledger and action types.
 Combining two accepted changes creates a candidate with two parent references.
 The combination requires its own verification.

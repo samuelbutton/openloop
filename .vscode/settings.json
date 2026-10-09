@@ -1,0 +1,16 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.diagnosticMode": "workspace",
+  "ruff.enable": true,
+  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+  "ruff.configurationPreference": "filesystemFirst",
+  "ruff.lint.enable": true,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "always",
+      "source.organizeImports.ruff": "always"
+    }
+  }
+}

@@ -57,3 +57,17 @@ def test_result_validation_and_immutability():
     result = Result({"score": Metric(1, "x")})
     with pytest.raises(TypeError):
         result.metrics["other"] = Metric(2, "x")  # pyright: ignore[reportIndexIssue]
+
+
+def test_observations_are_frozen_validated_and_ignored_by_comparison(result):
+    timed = replace(result, observations={"seconds": Metric(1.0, "seconds")})
+    slower = replace(result, observations={"seconds": Metric(9.0, "seconds")})
+    assert compare_results(timed, slower) == ()
+    assert compare_results(result, timed) == ()
+    with pytest.raises(TypeError):
+        timed.observations["other"] = Metric(2, "x")  # pyright: ignore[reportIndexIssue]
+    with pytest.raises(InvalidInputError):
+        Result(
+            {"score": Metric(1, "x")},
+            observations={"seconds": 1.0},  # pyright: ignore[reportArgumentType]
+        )
