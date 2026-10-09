@@ -1,0 +1,47 @@
+/Users/sambutton/code/samuelbutton/openloop/.venv/lib/python3.12/site-packages/nas_201_api/api_201.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  file_path_or_dict = torch.load(file_path_or_dict, map_location='cpu')
+{
+  "architectures": 15625,
+  "queries": [
+    {
+      "architecture_index": 0,
+      "epochs": 12,
+      "validation_accuracy_percent": 63.36399998046875,
+      "recorded_training_seconds": 86.65311598777771
+    },
+    {
+      "architecture_index": 0,
+      "epochs": 200,
+      "validation_accuracy_percent": 81.98266665690103,
+      "recorded_training_seconds": 1444.2185997962952
+    },
+    {
+      "architecture_index": 7812,
+      "epochs": 12,
+      "validation_accuracy_percent": 58.55799998779297,
+      "recorded_training_seconds": 71.50459241867065
+    },
+    {
+      "architecture_index": 7812,
+      "epochs": 200,
+      "validation_accuracy_percent": 75.41066666503906,
+      "recorded_training_seconds": 1191.7432069778442
+    },
+    {
+      "architecture_index": 15624,
+      "epochs": 12,
+      "validation_accuracy_percent": 55.76199999694825,
+      "recorded_training_seconds": 125.36395335197449
+    },
+    {
+      "architecture_index": 15624,
+      "epochs": 200,
+      "validation_accuracy_percent": 84.1906666805013,
+      "recorded_training_seconds": 2089.3992225329084
+    }
+  ],
+  "torch_version": "2.14.1",
+  "api_version": "2.1",
+  "elapsed_seconds": 107.46720549976453,
+  "peak_rss_bytes": 8929050624
+}

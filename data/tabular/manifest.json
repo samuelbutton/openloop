@@ -1,0 +1,66 @@
+{
+  "format_version": 1,
+  "downloads": [
+    {
+      "path": "data/tabular/raw/NAS-Bench-201-v1_1-096897.pth",
+      "size_bytes": 5003180601,
+      "sha256": "2317a7dc911654322f4f932730a821cf38ecc5b5f1adde0aff26ff6b3f736666"
+    },
+    {
+      "path": "data/tabular/raw/hpob-data.zip",
+      "size_bytes": 261011374,
+      "sha256": "ab1c439e50ffea3d8a3f1e0ad7ee7f03cd3c12df05576de84ad7c3b58fbf3358"
+    }
+  ],
+  "hpob_extracted_files": [
+    {
+      "path": "data/tabular/hpob/hpob-data/bo-initializations.json",
+      "size_bytes": 323415,
+      "sha256": "71c5878ec1fcd66fbf375407a66281a370287d3d1eeb2e1e1fe07a8ec54c29db"
+    },
+    {
+      "path": "data/tabular/hpob/hpob-data/meta-test-dataset.json",
+      "size_bytes": 195075429,
+      "sha256": "92f88c12a779c6a86a22040d511dce68f0a164d572acb42141ebae1e8958eea6"
+    },
+    {
+      "path": "data/tabular/hpob/hpob-data/meta-train-dataset-augmented.json",
+      "size_bytes": 352329251,
+      "sha256": "4b658690a668ab81bbbdb4d4fa2165fb432b8afe584cb4bda3b91be3fe149e6b"
+    },
+    {
+      "path": "data/tabular/hpob/hpob-data/meta-train-dataset.json",
+      "size_bytes": 346356822,
+      "sha256": "4a51701c81b6ac4e9cff5ace9d174a29ec6b9096c8dcb1ca7ec6b57c600891d7"
+    },
+    {
+      "path": "data/tabular/hpob/hpob-data/meta-validation-dataset.json",
+      "size_bytes": 124236991,
+      "sha256": "e06287807cc782f1b758938d11dcbb754c7363bea6a5f028538bb2b1096a3e75"
+    }
+  ],
+  "nas201": {
+    "source_url": "https://drive.google.com/uc?id=16Y0UwGisiouVRxW-W5hEtbxmcHw_0hF_",
+    "release": "v1.1",
+    "md5": "55e847143ce1f7c2d89b676f6b096897",
+    "instructions_revision": "7fa5a61464e454e96bdb90818f0d795d68d5728b"
+  },
+  "hpob": {
+    "source_url": "https://media.githubusercontent.com/media/sebastianpinedaar/hpo-data/6b9b6f54aeaad010760bba8f16ca0f070adcd63c/hpob-data.zip",
+    "data_revision": "6b9b6f54aeaad010760bba8f16ca0f070adcd63c",
+    "handler_revision": "f16c0c52c27ba4e928dd3ad648231726cb06a9ab"
+  },
+  "runtime": {
+    "python": "3.12.13",
+    "macos": "26.6.2",
+    "packages": {
+      "torch": "2.14.1",
+      "nas-bench-201": "2.1",
+      "numpy": "2.5.3",
+      "xgboost": "3.4.1",
+      "gdown": "6.4.1"
+    },
+    "libomp": "23.1.3 (Homebrew)"
+  },
+  "probe_sha256": "12d004986dcffa390ad7075756c076565a3bfe16a60bcb75fb0be5071758ffdd"
+}

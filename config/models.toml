@@ -1,0 +1,16 @@
+# Model choices verified against official documentation on 2026-10-08.
+# These are model aliases; the provider does not list dated snapshots for them.
+
+[proposer]
+provider = "openai"
+model = "gpt-6-astra"
+reasoning_effort = "high"
+service_tier = "default"
+
+[implementer]
+provider = "openai"
+agent = "codex-cli"
+model = "gpt-6.1-sol"
+reasoning_effort = "medium"
+service_tier = "default"
+max_implementation_retries = 2
