@@ -24,7 +24,9 @@ benchmarks = [
     "xgboost>=3.4.1",
 ]
 dev = [
+    "hypothesis>=6.168,<7",
     "pre-commit>=4,<5",
+    "pyright>=1.1.414,<2",
     "pytest>=8,<10",
     "ruff>=0.15,<0.16",
 ]
@@ -33,8 +35,19 @@ dev = [
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PT", "C4", "PERF", "RET"]
+
+[tool.ruff.lint.per-file-ignores]
+# Recorded research scripts are frozen evidence; their assert style stays as run.
+"research/**" = ["PT018"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--import-mode=importlib", "--strict-config", "--strict-markers"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+include = ["src", "tests"]
+exclude = ["research", "**/__pycache__"]
+typeCheckingMode = "standard"
+strict = ["src/openloop/ledger", "src/openloop/probe.py"]

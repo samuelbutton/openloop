@@ -1,6 +1,6 @@
 # Experiment ledger
 
-`openloop.ledger` provides a local SQLite ledger with schema version 1.
+`openloop.ledger` provides a local SQLite ledger with storage schema version 2.
 It uses only the Python standard library.
 The existing `ledger.json` remains a separate setup record.
 The ledger does not import that record automatically.
@@ -8,47 +8,82 @@ The ledger does not import that record automatically.
 ## Identity and schema
 
 `ExperimentInputs` declares the source, dependencies, data, environment, evaluator, and loop hashes.
-It also declares the tokenizer, configuration, seed, verification stage, fidelity, budget, and execution settings.
+It also declares the tokenizer, configuration, seed, phase, fidelity, budget, reproducibility, and execution settings.
 Each content reference must be a full lowercase SHA-256 digest.
 Hash complete source and dependency snapshots, rather than mutable paths or model aliases.
-Freeze the environment probe once for a campaign; do not regenerate its benchmark for each submission.
+For `environment_hash`, hash the probe's `environment` field.
+Do not hash its `calibration` field, because that field contains a timestamp and benchmark measurements.
 
-The input hash covers canonical JSON and the schema version.
+The phase names the verification phase, such as `screen` or `held_out`.
+A stage is a step of one attempt: queue, execution, or evaluation.
+Reproducibility is `deterministic` when identical inputs are expected to give identical results.
+It is `noisy` when repeats are expected to vary, for example from GPU nondeterminism.
+
+The input hash covers canonical JSON and `IDENTITY_VERSION`.
+Bump `IDENTITY_VERSION` only when the canonical encoding or a field's meaning changes.
+That change alters every hash.
+The storage `SCHEMA_VERSION` does not enter any hash.
 Canonical JSON uses sorted keys, fixed separators, and UTF-8.
 It rejects non-finite numbers and non-string object keys.
 Nested input mappings and sequences are immutable after construction.
 Integer and floating-point configuration values remain distinct inputs.
 
+The candidate hash covers the identity version, source hash, dependencies hash, and configuration.
+It ignores the seed, fidelity, phase, data, evaluator, and other experiment settings.
+Use it to group the samples of one candidate across seeds.
+
+Allowed values come from enums: `Purpose`, `Status`, `Stage`, `PreparationStage`, `Direction`, and `Reproducibility`.
+Methods accept enum members or plain strings.
+SQL `CHECK` clauses are built from the same enums.
+
 | Table | Content |
 | --- | --- |
-| `experiment` | Input hash and canonical manifest. |
+| `experiment` | Input hash, candidate hash, and canonical manifest. |
 | `attempt` | Execution identity, input hash, purpose, and retry reference. |
 | `submission` | Submission identity, attempt reference, hypothesis, UTC time, reuse reference, and optional request key. |
 | `parent` | Submission lineage edges. Parents must already exist. |
-| `event` | Ordered stage and terminal events, UTC timestamps, and immutable payloads. |
-| `probe` | Baseline and replication references, tolerances, comparison time, and observed differences. |
+| `event` | Ordered attempt events with an optional stage, UTC timestamps, and immutable payloads. |
+| `preparation` | Proposal and implementation times for one submission. |
+| `probe` | Baseline and replication references, tolerances, comparison time, observed differences, and cache invalidation. |
 
 Database triggers reject updates and deletes.
 The `attempt_state` view derives current status from events.
 Admission uses one write transaction for inputs, attempts, submissions, parents, and the initial queue event.
 Connections use foreign keys and write-ahead logging.
-Unknown schema versions and unrelated databases are rejected.
+Unrelated databases and other schema versions raise `SchemaError`.
+There is no migration from the pre-release version 1 schema.
 Use one `Ledger` connection per thread.
+
+## Errors
+
+| Exception | Raised for |
+| --- | --- |
+| `LedgerError` | Base class for all ledger failures. |
+| `InvalidInputError` | Malformed values and values outside an enum. Also a `ValueError`. |
+| `NotFoundError` | Unknown run IDs and missing parents. Also a `LookupError`. |
+| `ConflictError` | A request key reused with different provenance, or a preparation stage recorded twice. |
+| `InvalidTransitionError` | Stage order, terminal runs, reused submissions, retries of runs that did not fail, and probes of incomplete baselines. |
+| `SchemaError` | Unrelated databases and unsupported schema versions. |
 
 ## API
 
 | Operation | Behavior |
 | --- | --- |
 | `submit(inputs, ...)` | Record a hypothesis and parents. Reuse completed results or pending normal work with identical inputs. |
-| `get(run_id)` | Return an immutable snapshot of the submission, attempt, inputs, events, and result. Unknown IDs raise `KeyError`. |
+| `get(run_id)` | Return an immutable snapshot of the submission, attempt, inputs, preparations, events, and result. |
 | `lineage(run_id)` | Return unique ancestors before descendants. Include explicit parents, retry parents, and cache sources. |
-| `query(...)` | Filter by status, input hash, or purpose. Support `limit` and `offset`. Exclude reused submissions by default. |
-| `record_preparation(...)` | Record actual proposal or implementation times before submission. Reject overlapping stages and unknown timezones. |
+| `query(...)` | Filter by status, input hash, candidate hash, or purpose. Support `limit` and `offset`. Exclude reused submissions by default. |
+| `record_preparation(run_id, stage, ...)` | Record actual proposal or implementation times for a submission. Reject overlapping stages and unknown timezones. |
 | `start_stage(run_id, stage)` | Close the current stage and start a later stage in one transaction. |
-| `complete(run_id, result)` | Publish trusted typed metrics, artifact hashes, and an optional verdict. Require execution and evaluation stages. |
+| `complete(run_id, result)` | Publish trusted typed metrics and artifact hashes. Require execution and evaluation stages. |
 | `fail(run_id, reason)` | Close the active stage and preserve the failure reason. |
-| `probe(run_id, runner, ...)` | Force a replication, compare its results, and persist the comparison. |
+| `record_probe(baseline_id, repeat_id, result, ...)` | Complete a replication, compare it with the baseline, and persist the comparison in one transaction. |
 | `probes(run_id)` | Read stored probe comparisons for a baseline. |
+
+`openloop.probe.run_probe` orchestrates a probe through this public API.
+
+A result holds measurements only.
+A decision compares several samples and belongs in a separate record.
 
 Every submission has an ID.
 Reused submissions share an `attempt_id` and contain `reused_from`.
@@ -58,7 +93,7 @@ They do not create another statistical sample.
 Check `reused_from` before scheduling work.
 
 A `request_key` makes repeated admission of one request idempotent.
-Reusing that key with different inputs or provenance raises `ValueError`.
+Reusing that key with different inputs or provenance raises `ConflictError`.
 Different keys can reference the same cached attempt.
 `purpose="replication"` always creates a new attempt.
 `purpose="retry"` requires `retry_of` to reference a failed run with identical inputs.
@@ -67,18 +102,25 @@ A new seed or fidelity changes the input hash.
 
 ## Stage times and recovery
 
-Stages are proposal, implementation, queue, execution, evaluation, and decision.
+Attempt stages are queue, execution, and evaluation.
 Submission starts the queue stage.
 `start_stage` records the current stage's finish and the next stage's start.
 Completion and failure close the active stage.
-Stages can be omitted when no corresponding work occurs.
-The ledger does not invent proposal or implementation times.
+Stage events carry the `event.stage` column and keep durations in their payload.
+`run.stages` groups attempt events by stage.
+
+Preparation belongs to the submission, not the attempt.
+The stages are proposal and implementation.
+A cache-hit submission records its own preparation.
+Preparation can be recorded in any attempt status.
+It must finish by the submission time, and the proposal must finish before the implementation starts.
+The ledger does not invent preparation times.
+`run.preparations` lists them by start time.
 
 Events store UTC timestamps with microsecond precision.
 Durations use a monotonic clock within one connection's lifetime.
 After reopening, durations use wall time and carry `duration_clock="wall"`.
 Wall-time durations can be affected by clock changes.
-`run.stages` groups the recorded events by stage.
 
 An interrupted write transaction leaves no partial submission or terminal result.
 A committed running attempt remains visible after restart.
@@ -87,21 +129,29 @@ The ledger does not assume that an interrupted coordinator stopped the worker.
 
 ## Determinism probe
 
-The probe callback receives the baseline's exact `ExperimentInputs`.
-It must perform the experiment and return a trusted `Result`.
+`run_probe` validates the tolerances and the baseline before it admits any work.
+It submits a replication with the baseline as parent and starts execution.
+It passes the baseline's exact `ExperimentInputs` to the runner, which must perform the experiment and return a trusted `Result`.
+It then starts evaluation and calls `record_probe`.
 The ledger records a new replication even when a cached result exists.
-Callback errors create a failed replication and propagate to the caller.
+Any error after admission, including `KeyboardInterrupt`, fails the replication and propagates.
 
 The comparison checks metric names, values, units, directions, splits, sample counts, and artifact hashes.
 For a metric, the permitted difference is `atol + rtol * abs(baseline_value)`.
 Both tolerances default to zero.
-Timing, costs, and verdicts are excluded from the comparison.
+Timing and costs are excluded from the comparison.
 This check measures one repeat; it does not establish statistical confidence.
 
+`record_probe` requires a succeeded baseline.
+The repeat must be a replication with the baseline as parent and the same input hash.
 Replication completion and its comparison enter the ledger in one transaction.
-A mismatch disables completed-result reuse for that input hash.
+
+A mismatch for `deterministic` inputs sets `invalidates_cache`.
+That flag disables completed-result reuse for the input hash.
+For `noisy` inputs a mismatch records variation and leaves reuse enabled.
+A cached result is one earlier sample and never adds a sample.
 Pending work can still be shared.
-The drift flag persists across restarts and later matching probes.
+The flag persists across restarts and later matching probes.
 There is no automatic reset of that flag.
 
 ## Example
@@ -110,7 +160,15 @@ This example uses a synthetic evaluator and spends no API or GPU credit.
 The example hashes identify toy snapshots, not the current training setup.
 
 ```python
-from openloop.ledger import ExperimentInputs, Ledger, Metric, Result, content_hash
+from openloop.ledger import (
+    ExperimentInputs,
+    Ledger,
+    Metric,
+    Reproducibility,
+    Result,
+    content_hash,
+)
+from openloop.probe import run_probe
 
 inputs = ExperimentInputs(
     source_hash=content_hash("toy source v1"),
@@ -123,6 +181,7 @@ inputs = ExperimentInputs(
     fidelity="screen",
     budget_unit="evaluations",
     budget_amount=1,
+    reproducibility=Reproducibility.DETERMINISTIC,
 )
 
 
@@ -137,7 +196,7 @@ with Ledger("ledger.sqlite3") as ledger:
         result = evaluate(inputs)
         ledger.start_stage(run.id, "evaluation")
         ledger.complete(run.id, result)
-    report = ledger.probe(run.id, evaluate)
+    report = run_probe(ledger, run.id, evaluate)
     assert report.matches
     assert ledger.get(run.id).status == "succeeded"
     assert run.id in {ancestor.id for ancestor in ledger.lineage(report.repeat_id)}
@@ -149,4 +208,4 @@ Only trusted orchestration and evaluator code may publish results.
 This API is not an agent security boundary or a statistical decider.
 The caller must verify artifact bytes before recording their hashes.
 Artifact bytes and metric-series files remain outside this first ledger implementation.
-Campaign budgets, worker execution, held-out access control, and migration of setup records remain separate tasks.
+Decision records, campaign budgets, worker execution, held-out access control, and migration of setup records remain separate tasks.

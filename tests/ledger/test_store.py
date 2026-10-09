@@ -1,4 +1,4 @@
-"""Check persisted provenance, admission races, cache identity, and measured drift."""
+"""Check persisted provenance, admission races, cache identity, and recovery."""
 
 import signal
 import sqlite3
@@ -12,114 +12,23 @@ from threading import Barrier
 import pytest
 
 from openloop.ledger import (
-    ExperimentInputs,
+    SCHEMA_VERSION,
+    ConflictError,
+    EventKind,
+    InvalidInputError,
+    InvalidTransitionError,
     Ledger,
+    LedgerError,
     Metric,
+    NotFoundError,
     Result,
+    SchemaError,
+    Stage,
     canonical_json,
-    compare_results,
-    content_hash,
 )
 
 
-@pytest.fixture
-def inputs():
-    return ExperimentInputs(
-        source_hash="1" * 64,
-        dependencies_hash="2" * 64,
-        data_hash="3" * 64,
-        environment_hash="4" * 64,
-        evaluator_hash="5" * 64,
-        loop_hash="6" * 64,
-        seed=42,
-        fidelity="screen",
-        budget_unit="tokens",
-        budget_amount=1024,
-        config={"depth": 4, "layers": [1, 2]},
-        execution={"device": "cpu"},
-    )
-
-
-@pytest.fixture
-def result():
-    return Result({"val_bpb": Metric(1.75, "BPB")}, {"checkpoint": "7" * 64})
-
-
-@pytest.fixture
-def ledger(tmp_path):
-    with Ledger(tmp_path / "ledger.sqlite3") as store:
-        yield store
-
-
-def finish(ledger, run, result):
-    ledger.start_stage(run.id, "execution")
-    ledger.start_stage(run.id, "evaluation")
-    ledger.start_stage(run.id, "decision")
-    return ledger.complete(run.id, result)
-
-
-def test_canonical_identity_and_frozen_snapshots(inputs):
-    assert canonical_json({"z": 1, "a": [2]}) == '{"a":[2],"z":1}'
-    assert content_hash({"a": 1, "b": 2}) == content_hash({"b": 2, "a": 1})
-    config = {"layers": [1, {"width": 32}]}
-    snapshot = replace(inputs, config=config)
-    identity = snapshot.hash
-    config["layers"][1]["width"] = 64
-    assert snapshot.hash == identity
-    with pytest.raises(TypeError):
-        snapshot.config["new"] = 1
-    with pytest.raises(TypeError):
-        snapshot.config["layers"][1]["width"] = 64
-
-
-@pytest.mark.parametrize(
-    "field,value",
-    [
-        ("source_hash", "a" * 64),
-        ("dependencies_hash", "a" * 64),
-        ("data_hash", "a" * 64),
-        ("environment_hash", "a" * 64),
-        ("evaluator_hash", "a" * 64),
-        ("loop_hash", "a" * 64),
-        ("tokenizer_hash", "a" * 64),
-        ("seed", 43),
-        ("fidelity", "confirm"),
-        ("budget_unit", "epochs"),
-        ("budget_amount", 2048),
-        ("config", {"depth": 5}),
-        ("execution", {"device": "gpu"}),
-        ("stage", "held_out"),
-    ],
-)
-def test_every_declared_input_changes_identity(inputs, field, value):
-    assert replace(inputs, **{field: value}).hash != inputs.hash
-
-
-@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
-def test_nonfinite_inputs_and_results_are_rejected(inputs, value):
-    with pytest.raises(ValueError):
-        replace(inputs, config={"value": value})
-    with pytest.raises(ValueError):
-        Metric(value, "BPB")
-
-
-@pytest.mark.parametrize(
-    "changes",
-    [
-        {"seed": True},
-        {"seed": -1},
-        {"budget_amount": 0},
-        {"source_hash": "unversioned"},
-        {"config": {1: "bad key"}},
-        {"execution": ["not an object"]},
-    ],
-)
-def test_invalid_inputs_fail_before_admission(inputs, changes):
-    with pytest.raises(ValueError):
-        replace(inputs, **changes)
-
-
-def test_stage_timestamps_survive_reopen(ledger, tmp_path, inputs, result):
+def test_stage_timestamps_survive_reopen(ledger, finish, tmp_path, inputs, result):
     run = ledger.submit(inputs, hypothesis="Increase depth")
     end = datetime.now(UTC) - timedelta(seconds=1)
     ledger.record_preparation(
@@ -135,37 +44,43 @@ def test_stage_timestamps_survive_reopen(ledger, tmp_path, inputs, result):
         finished_at=end,
     )
     assert ledger.get(run.id).status == "queued"
-    completed = finish(ledger, run, result)
+    completed = finish(run, result)
     assert completed.status == "succeeded"
     with Ledger(tmp_path / "ledger.sqlite3") as reopened:
         restored = reopened.get(run.id)
         assert restored == completed
         assert restored.result == result
-        assert set(restored.stages) == {
+        assert [item.stage for item in restored.preparations] == [
             "proposal",
             "implementation",
-            "queue",
-            "execution",
-            "evaluation",
-            "decision",
-        }
-        for stage, events in restored.stages.items():
-            assert events
+        ]
+        assert restored.preparations[0].duration_seconds == 2
+        assert set(restored.stages) == set(Stage)
+        for events in restored.stages.values():
+            assert [event.kind for event in events] == [
+                EventKind.STAGE_STARTED,
+                EventKind.STAGE_FINISHED,
+            ]
             for event in events:
                 assert datetime.fromisoformat(event.timestamp).utcoffset() == timedelta(
                     0
                 )
-            if stage not in ("proposal", "implementation"):
-                assert [event.kind for event in events] == [
-                    "stage_started",
-                    "stage_finished",
-                ]
-                assert events[-1].payload["duration_seconds"] >= 0
-                assert events[-1].payload["duration_clock"] == "monotonic"
+            duration = events[-1].payload["duration_seconds"]
+            assert isinstance(duration, int | float)
+            assert duration >= 0
+            assert events[-1].payload["duration_clock"] == "monotonic"
 
 
-def test_cache_reuses_result_without_duplicate_samples(ledger, inputs, result):
-    baseline = finish(ledger, ledger.submit(inputs), result)
+def test_ticks_do_not_accumulate(ledger, finish, inputs, result):
+    finish(ledger.submit(inputs), result)
+    failed = ledger.submit(replace(inputs, seed=1))
+    ledger.start_stage(failed.id, "execution")
+    ledger.fail(failed.id, "Crash")
+    assert ledger._ticks == {}
+
+
+def test_cache_reuses_result_without_duplicate_samples(ledger, finish, inputs, result):
+    baseline = finish(ledger.submit(inputs), result)
     parent = ledger.submit(replace(inputs, seed=43))
     cached = ledger.submit(inputs, hypothesis="Same inputs", parents=(parent.id,))
     assert cached.id != baseline.id
@@ -181,8 +96,28 @@ def test_cache_reuses_result_without_duplicate_samples(ledger, inputs, result):
         parent.id,
         cached.id,
     }
-    with pytest.raises(ValueError, match="Reused"):
+    with pytest.raises(InvalidTransitionError, match="Reused"):
         ledger.fail(cached.id, "Cannot edit a cache alias")
+    with pytest.raises(InvalidTransitionError, match="Reused"):
+        ledger.start_stage(cached.id, "execution")
+
+
+def test_preparation_belongs_to_each_submission(ledger, finish, inputs, result):
+    baseline = finish(ledger.submit(inputs, hypothesis="First"), result)
+    cached = ledger.submit(inputs, hypothesis="Second")
+    assert cached.reused_from == baseline.id
+    end = datetime.now(UTC) - timedelta(seconds=1)
+    updated = ledger.record_preparation(
+        cached.id, "proposal", started_at=end - timedelta(seconds=5), finished_at=end
+    )
+    assert [item.stage for item in updated.preparations] == ["proposal"]
+    assert updated.status == "succeeded"
+    assert ledger.get(baseline.id).preparations == ()
+    ledger.record_preparation(
+        baseline.id, "proposal", started_at=end - timedelta(seconds=9), finished_at=end
+    )
+    assert ledger.get(baseline.id).preparations[0].duration_seconds == 9
+    assert ledger.get(cached.id).preparations[0].duration_seconds == 5
 
 
 def test_atomic_admission_between_connections(tmp_path, inputs):
@@ -207,14 +142,14 @@ def test_atomic_admission_between_connections(tmp_path, inputs):
 def test_request_key_is_idempotent_and_rejects_conflicts(ledger, inputs):
     run = ledger.submit(inputs, request_key="job-1")
     assert ledger.submit(inputs, request_key="job-1") == run
-    with pytest.raises(ValueError, match="different inputs"):
+    with pytest.raises(ConflictError, match="different inputs"):
         ledger.submit(replace(inputs, seed=43), request_key="job-1")
-    with pytest.raises(ValueError, match="different inputs"):
+    with pytest.raises(ConflictError, match="different inputs"):
         ledger.submit(inputs, hypothesis="New provenance", request_key="job-1")
     assert len(ledger.query(include_reused=True)) == 1
 
 
-def test_retry_preserves_failed_attempt_and_cache_key(ledger, inputs, result):
+def test_retry_preserves_failed_attempt_and_cache_key(ledger, finish, inputs, result):
     original = ledger.submit(inputs)
     ledger.fail(original.id, "Worker was interrupted")
     retry = ledger.submit(inputs, purpose="retry", retry_of=original.id)
@@ -222,7 +157,7 @@ def test_retry_preserves_failed_attempt_and_cache_key(ledger, inputs, result):
     assert retry.retry_of == original.attempt_id
     assert retry.parents == (original.id,)
     assert retry.inputs.hash == original.inputs.hash
-    finish(ledger, retry, result)
+    finish(retry, result)
     cache = ledger.submit(inputs, request_key="from-retry")
     assert cache.reused_from == retry.id
     assert cache.purpose == "run"
@@ -240,8 +175,12 @@ def test_failed_runs_and_replications_do_not_reuse_pending_work(ledger, inputs):
     ledger.fail(original.id, "Crash")
     next_run = ledger.submit(inputs)
     assert next_run.attempt_id not in (original.attempt_id, replication.attempt_id)
-    with pytest.raises(ValueError, match="failed run"):
+    with pytest.raises(InvalidTransitionError, match="failed run"):
         ledger.submit(inputs, purpose="retry", retry_of=next_run.id)
+    with pytest.raises(InvalidInputError, match="identical inputs"):
+        ledger.submit(replace(inputs, seed=1), purpose="retry", retry_of=original.id)
+    with pytest.raises(InvalidInputError, match="retry_of"):
+        ledger.submit(inputs, retry_of=original.id)
 
 
 def test_lineage_preserves_diamond_and_combined_parents(ledger, inputs):
@@ -256,53 +195,95 @@ def test_lineage_preserves_diamond_and_combined_parents(ledger, inputs):
     assert ancestors[-1].id == child.id
     for run in ancestors:
         assert all(positions[parent] < positions[run.id] for parent in run.parents)
-    with pytest.raises(KeyError):
+    with pytest.raises(NotFoundError):
         ledger.submit(inputs, parents=("missing",))
     assert len(ledger.query()) == 4
 
 
-def test_query_filters_and_pagination(ledger, inputs, result):
+def test_query_filters_and_pagination(ledger, finish, inputs, result):
     queued = ledger.submit(inputs)
     failed = ledger.submit(replace(inputs, seed=1))
     ledger.fail(failed.id, "Crash")
-    succeeded = finish(ledger, ledger.submit(replace(inputs, seed=2)), result)
+    succeeded = finish(ledger.submit(replace(inputs, seed=2)), result)
     assert ledger.query(status="queued") == (ledger.get(queued.id),)
     assert ledger.query(status="failed") == (ledger.get(failed.id),)
     assert ledger.query(experiment_hash=succeeded.inputs.hash) == (succeeded,)
     assert ledger.query(limit=1, offset=1)[0].id == failed.id
     assert ledger.query(status="succeeded", purpose="replication") == ()
+    with pytest.raises(InvalidInputError):
+        ledger.query(status="finished")
+    with pytest.raises(InvalidInputError):
+        ledger.query(purpose="sample")
+
+
+def test_query_groups_seeds_by_candidate(ledger, inputs):
+    seeds = [ledger.submit(replace(inputs, seed=seed)) for seed in (1, 2, 3)]
+    other = ledger.submit(replace(inputs, config={"depth": 8}))
+    grouped = ledger.query(candidate_hash=inputs.candidate_hash)
+    assert [run.id for run in grouped] == [run.id for run in seeds]
+    assert ledger.query(candidate_hash=other.inputs.candidate_hash) == (other,)
+    with pytest.raises(InvalidInputError):
+        ledger.query(candidate_hash="not a digest")
 
 
 def test_invalid_transitions_do_not_change_evidence(ledger, inputs, result):
     run = ledger.submit(inputs)
-    with pytest.raises(ValueError, match="required"):
+    with pytest.raises(InvalidTransitionError, match="required"):
         ledger.complete(run.id, result)
     assert ledger.get(run.id) == run
     ledger.start_stage(run.id, "execution")
-    with pytest.raises(ValueError, match="order"):
+    with pytest.raises(InvalidTransitionError, match="order"):
         ledger.start_stage(run.id, "queue")
+    with pytest.raises(InvalidInputError):
+        ledger.start_stage(run.id, "decision")
     ledger.fail(run.id, "Execution failed")
-    with pytest.raises(ValueError, match="terminal"):
+    with pytest.raises(InvalidTransitionError, match="terminal"):
         ledger.start_stage(run.id, "evaluation")
+
+
+def test_unknown_runs_raise_not_found(ledger, result):
+    for call in (
+        lambda: ledger.get("missing"),
+        lambda: ledger.start_stage("missing", "execution"),
+        lambda: ledger.fail("missing", "reason"),
+        lambda: ledger.complete("missing", result),
+        lambda: ledger.probes("missing"),
+        lambda: ledger.lineage("missing"),
+    ):
+        with pytest.raises(NotFoundError):
+            call()
+    assert issubclass(NotFoundError, (LedgerError, LookupError))
+    assert issubclass(InvalidInputError, (LedgerError, ValueError))
 
 
 def test_preparation_rejects_unknown_times_and_overlap(ledger, inputs):
     run = ledger.submit(inputs)
     end = datetime.now(UTC) - timedelta(seconds=1)
-    with pytest.raises(ValueError, match="timezone"):
+    with pytest.raises(InvalidInputError, match="timezone"):
         ledger.record_preparation(
             run.id,
             "proposal",
             started_at=end.replace(tzinfo=None),
             finished_at=end,
         )
+    with pytest.raises(InvalidInputError, match="before submission"):
+        ledger.record_preparation(
+            run.id,
+            "proposal",
+            started_at=end,
+            finished_at=datetime.now(UTC) + timedelta(seconds=60),
+        )
+    with pytest.raises(InvalidInputError, match="preparation stage"):
+        ledger.record_preparation(run.id, "queue", started_at=end, finished_at=end)
     ledger.record_preparation(
         run.id,
         "proposal",
         started_at=end - timedelta(seconds=2),
         finished_at=end,
     )
-    with pytest.raises(ValueError, match="overlap"):
+    with pytest.raises(ConflictError, match="already"):
+        ledger.record_preparation(run.id, "proposal", started_at=end, finished_at=end)
+    with pytest.raises(InvalidInputError, match="overlap"):
         ledger.record_preparation(
             run.id,
             "implementation",
@@ -312,97 +293,59 @@ def test_preparation_rejects_unknown_times_and_overlap(ledger, inputs):
     assert ledger.get(run.id).status == "queued"
 
 
-def test_probe_forces_measurement_and_persists_match(ledger, tmp_path, inputs, result):
-    baseline = finish(ledger, ledger.submit(inputs), result)
-    called = []
-
-    def runner(snapshot):
-        called.append(snapshot.hash)
-        return result
-
-    report = ledger.probe(baseline.id, runner)
-    repeat = ledger.get(report.repeat_id)
-    assert called == [inputs.hash]
-    assert report.matches and not report.differences
-    assert repeat.attempt_id != baseline.attempt_id
-    assert repeat.inputs == baseline.inputs
-    assert repeat.purpose == "replication"
-    assert repeat.parents == (baseline.id,)
-    with Ledger(tmp_path / "ledger.sqlite3") as reopened:
-        assert reopened.probes(baseline.id) == (report,)
-        assert len(reopened.query(purpose="replication")) == 1
-
-
-def test_probe_drift_disables_cache(ledger, inputs, result):
-    baseline = finish(ledger, ledger.submit(inputs), result)
-    changed = replace(result, metrics={"val_bpb": Metric(1.8, "BPB")})
-    report = ledger.probe(baseline.id, lambda _: changed)
-    assert not report.matches
-    assert report.differences == ("metric val_bpb: 1.75 -> 1.8",)
-    fresh = ledger.submit(inputs)
-    assert fresh.reused_from is None
-    assert fresh.attempt_id not in (
-        baseline.attempt_id,
-        ledger.get(report.repeat_id).attempt_id,
+def test_record_probe_validates_the_replication(ledger, finish, inputs, result):
+    baseline = finish(ledger.submit(inputs), result)
+    queued = ledger.submit(replace(inputs, seed=1))
+    unrelated = ledger.submit(inputs, purpose="replication")
+    other_inputs = ledger.submit(
+        replace(inputs, seed=2), purpose="replication", parents=(baseline.id,)
     )
-    assert ledger.submit(inputs).attempt_id == fresh.attempt_id
+    plain_run = ledger.submit(replace(inputs, seed=3), parents=(baseline.id,))
+    for repeat, error in (
+        (unrelated, InvalidInputError),
+        (other_inputs, InvalidInputError),
+        (plain_run, InvalidInputError),
+    ):
+        with pytest.raises(error):
+            ledger.record_probe(baseline.id, repeat.id, result)
+    with pytest.raises(InvalidTransitionError, match="baseline"):
+        ledger.record_probe(queued.id, unrelated.id, result)
+    with pytest.raises(NotFoundError):
+        ledger.record_probe(baseline.id, "missing", result)
+    ready = ledger.submit(inputs, purpose="replication", parents=(baseline.id,))
+    with pytest.raises(InvalidTransitionError, match="required"):
+        ledger.record_probe(baseline.id, ready.id, result)
+    ledger.start_stage(ready.id, "execution")
+    ledger.start_stage(ready.id, "evaluation")
+    with pytest.raises(InvalidInputError):
+        ledger.record_probe(baseline.id, ready.id, result, atol=-1)
+    assert ledger.get(ready.id).status == "running"
+    report = ledger.record_probe(baseline.id, ready.id, result)
+    assert report.matches
+    assert not report.invalidates_cache
+    with pytest.raises(InvalidTransitionError, match="terminal"):
+        ledger.record_probe(baseline.id, ready.id, result)
+    assert ledger.probes(baseline.id) == (report,)
 
 
-def test_probe_failure_is_recorded(ledger, inputs, result):
-    baseline = finish(ledger, ledger.submit(inputs), result)
-
-    def crash(_):
-        raise RuntimeError("Runner failed")
-
-    with pytest.raises(RuntimeError, match="Runner failed"):
-        ledger.probe(baseline.id, crash)
-    failed = ledger.query(status="failed", purpose="replication")
-    assert len(failed) == 1
-    assert failed[0].events[-1].payload["reason"] == "RuntimeError: Runner failed"
-    assert ledger.probes(baseline.id) == ()
-    assert ledger.get(baseline.id).result == result
-
-
-def test_invalid_probe_tolerance_does_not_admit_work(ledger, inputs, result):
-    baseline = finish(ledger, ledger.submit(inputs), result)
-    with pytest.raises(ValueError):
-        ledger.probe(baseline.id, lambda _: result, atol=float("nan"))
-    assert ledger.query(purpose="replication") == ()
-
-
-def test_probe_completion_and_comparison_are_atomic(ledger, tmp_path, inputs, result):
-    baseline = finish(ledger, ledger.submit(inputs), result)
+def test_probe_completion_and_comparison_are_atomic(
+    ledger, finish, tmp_path, inputs, result
+):
+    baseline = finish(ledger.submit(inputs), result)
+    repeat = ledger.submit(inputs, purpose="replication", parents=(baseline.id,))
+    ledger.start_stage(repeat.id, "execution")
+    ledger.start_stage(repeat.id, "evaluation")
     with sqlite3.connect(tmp_path / "ledger.sqlite3") as db:
         db.execute("""
             CREATE TRIGGER reject_probe BEFORE INSERT ON probe
             BEGIN SELECT RAISE(ABORT, 'injected failure'); END
         """)
     with pytest.raises(sqlite3.IntegrityError, match="injected failure"):
-        ledger.probe(baseline.id, lambda _: result)
-    (repeat,) = ledger.query(purpose="replication")
-    assert repeat.status == "failed"
-    assert all(event.kind != "succeeded" for event in repeat.events)
+        ledger.record_probe(baseline.id, repeat.id, result)
+    after = ledger.get(repeat.id)
+    assert after.status == "running"
+    assert all(event.kind is not EventKind.SUCCEEDED for event in after.events)
     assert ledger.probes(baseline.id) == ()
-
-
-def test_comparison_tolerances_and_metadata(result):
-    slightly_changed = replace(result, metrics={"val_bpb": Metric(1.751, "BPB")})
-    assert compare_results(result, slightly_changed, atol=0.002) == ()
-    assert compare_results(result, slightly_changed, rtol=0.001) == ()
-    assert compare_results(result, slightly_changed)
-    metadata_changed = replace(result, metrics={"val_bpb": Metric(1.75, "nats")})
-    assert compare_results(result, metadata_changed) == (
-        "metric val_bpb: metadata differs",
-    )
-    artifact_changed = replace(result, artifacts={"checkpoint": "8" * 64})
-    assert compare_results(result, artifact_changed) == (
-        "artifact checkpoint: hash differs",
-    )
-    missing_metric = Result({"accuracy": Metric(0.5, "fraction", "maximize")})
-    assert "metric val_bpb: missing or extra" in compare_results(result, missing_metric)
-    for tolerance in (-1, float("nan"), float("inf"), True):
-        with pytest.raises(ValueError):
-            compare_results(result, result, atol=tolerance)
 
 
 def test_append_only_records_and_schema_version(tmp_path, inputs):
@@ -417,6 +360,7 @@ def test_append_only_records_and_schema_version(tmp_path, inputs):
             "parent",
             "event",
             "probe",
+            "preparation",
         ):
             triggers = db.execute(
                 "SELECT COUNT(*) FROM sqlite_master "
@@ -426,9 +370,38 @@ def test_append_only_records_and_schema_version(tmp_path, inputs):
             assert triggers == 2
         with pytest.raises(sqlite3.IntegrityError, match="append-only"):
             db.execute("DELETE FROM event")
+        with pytest.raises(sqlite3.IntegrityError):
+            db.execute("UPDATE event SET stage = 'bogus'")
+        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         db.execute("PRAGMA user_version = 99")
-    with pytest.raises(ValueError, match="Unsupported"):
+    with pytest.raises(SchemaError, match="Unsupported"):
         Ledger(path)
+
+
+def test_event_stage_values_are_constrained(ledger, tmp_path, inputs):
+    ledger.submit(inputs)
+    with (
+        sqlite3.connect(tmp_path / "ledger.sqlite3") as db,
+        pytest.raises(sqlite3.IntegrityError, match="CHECK"),
+    ):
+        db.execute(
+            "INSERT INTO event(attempt_id, kind, stage, timestamp, payload) "
+            "SELECT id, 'stage_started', 'decision', '', '{}' FROM attempt"
+        )
+
+
+def test_v1_and_unrelated_databases_are_rejected(tmp_path):
+    old = tmp_path / "v1.sqlite3"
+    with sqlite3.connect(old) as db:
+        db.execute("CREATE TABLE experiment (hash TEXT PRIMARY KEY, manifest TEXT)")
+        db.execute("PRAGMA user_version = 1")
+    with pytest.raises(SchemaError, match="version 1"):
+        Ledger(old)
+    other = tmp_path / "other.sqlite3"
+    with sqlite3.connect(other) as db:
+        db.execute("CREATE TABLE notes (body TEXT)")
+    with pytest.raises(SchemaError, match="unrelated"):
+        Ledger(other)
 
 
 def test_killed_transaction_leaves_no_partial_submission(tmp_path, inputs):
@@ -439,8 +412,8 @@ def test_killed_transaction_leaves_no_partial_submission(tmp_path, inputs):
 import json, os, signal, sys
 from openloop.ledger import ExperimentInputs, Ledger
 class KilledLedger(Ledger):
-    def _event(self, *args):
-        super()._event(*args)
+    def _event(self, *args, **kwargs):
+        super()._event(*args, **kwargs)
         os.kill(os.getpid(), signal.SIGKILL)
 with KilledLedger(sys.argv[1]) as ledger:
     ledger.submit(ExperimentInputs(**json.loads(sys.argv[2])))
@@ -468,9 +441,11 @@ def test_interrupted_run_stays_visible_and_can_be_retried(tmp_path, inputs, resu
         assert ledger.get(run.id).status == "running"
         assert ledger.submit(inputs).attempt_id == run.attempt_id
         failed = ledger.fail(run.id, "Worker lost after coordinator restart")
-        assert failed.stages["execution"][-1].payload["duration_clock"] == "wall"
+        assert failed.stages[Stage.EXECUTION][-1].payload["duration_clock"] == "wall"
         retry = ledger.submit(inputs, purpose="retry", retry_of=run.id)
-        finish(ledger, retry, result)
+        ledger.start_stage(retry.id, "execution")
+        ledger.start_stage(retry.id, "evaluation")
+        ledger.complete(retry.id, result)
         assert len(ledger.query()) == 2
 
 
@@ -484,8 +459,8 @@ def test_killed_completion_does_not_publish_a_partial_result(tmp_path, inputs, r
 import os, signal, sys
 from openloop.ledger import Ledger, Metric, Result
 class KilledLedger(Ledger):
-    def _event(self, attempt_id, kind, payload):
-        super()._event(attempt_id, kind, payload)
+    def _event(self, attempt_id, kind, payload, **kwargs):
+        super()._event(attempt_id, kind, payload, **kwargs)
         if kind == 'succeeded':
             os.kill(os.getpid(), signal.SIGKILL)
 with KilledLedger(sys.argv[1]) as ledger:
@@ -502,3 +477,5 @@ with KilledLedger(sys.argv[1]) as ledger:
         assert ledger.query(status="succeeded") == ()
         completed = ledger.complete(run.id, result)
         assert completed.result == result
+        assert isinstance(completed.result, Result)
+        assert completed.result.metrics["val_bpb"] == Metric(1.75, "BPB")
