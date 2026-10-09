@@ -46,6 +46,17 @@ Use `--size`, `--warmup`, and `--repeats` to change the calibration workload.
 
 Linux CI checks the portable logic and skips the Metal integration test.
 
+## Experiment ledger
+
+[`openloop.ledger`](docs/LEDGER.md) records immutable experiment inputs and
+append-only execution evidence in SQLite. It provides `submit`, `get`, `lineage`,
+and `query`, with per-stage UTC timestamps, cache reuse, retries, and explicit
+determinism probes. Reused submissions preserve provenance without adding samples.
+A probe that detects drift disables result-cache reuse for those inputs.
+
+See the [ledger guide](docs/LEDGER.md) for the schema, API, and a synthetic example.
+The new SQLite ledger is separate from the setup record in `ledger.json`.
+
 ## Frozen training data
 
 The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,

@@ -10,6 +10,7 @@ dist/
 htmlcov/
 .DS_Store
 ledger.json
+ledger.sqlite3*
 research/artifacts/account-setup/
 .env
 .env.*

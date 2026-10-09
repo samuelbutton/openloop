@@ -13,7 +13,11 @@ It also has recorded MLX runs and tabular load reports.
 The local `ledger.json` stores setup records.
 It is not the append-only ledger specified below.
 
-The core, loop interface, application spend gate, and plugins are not implemented.
+The first ledger implementation is available in `openloop.ledger`.
+It records input manifests, submissions, attempts, lineage, stage events, results, and determinism probes.
+The [ledger guide](docs/LEDGER.md) describes its API and schema.
+Campaign records, artifact storage, and spend records remain planned extensions.
+The loop interface, executors, decider, application spend gate, and plugins are not implemented.
 The [model configuration](config/models.toml) selects `gpt-6-astra` as proposer and `gpt-6.1-sol` through Codex CLI as implementer.
 The [billing configuration](config/billing.toml) records a $10 monthly OpenAI limit and $10 of RunPod credit.
 RunPod auto-pay is off.
@@ -79,7 +83,7 @@ SQLite stores small records and references.
 Parquet artifacts store long metric series.
 Git objects store source snapshots and diffs.
 SHA-256 identifies artifact bytes and canonical manifests.
-Schema version 1 uses these logical tables:
+The target schema uses these logical tables:
 
 | Table | Key and fields |
 | --- | --- |
