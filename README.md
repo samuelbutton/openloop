@@ -17,11 +17,13 @@ Run the checks:
 
 ```sh
 uv run pre-commit run --all-files
+uv run pyright
 uv run pytest
 ```
 
 Source code lives in `src/openloop/`; tests live in `tests/`.
 Commit `uv.lock` when changing dependencies so development and CI use the same versions.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing code; agents also follow [AGENTS.md](AGENTS.md).
 
 ## Environment ledger
 
@@ -32,10 +34,13 @@ Capture this machine's environment as the first ledger field:
 uv run python -m openloop.env_probe --output ledger.json
 ```
 
-The probe prints JSON with an `environment` field containing the chip, physical RAM
-in bytes, macOS, Python and MLX versions, and a GPU matmul benchmark. The saved
-`ledger.json` is local and ignored by Git; existing files are never overwritten.
-Omit `--output` to print a fresh record without saving it.
+The probe prints JSON with two fields. `environment` holds only stable facts that
+can affect results: the chip, physical RAM in bytes, macOS, architecture, and the
+Python and MLX versions. Hash this field for `ExperimentInputs.environment_hash`.
+`calibration` holds the capture time and a GPU matmul benchmark; it is a
+measurement, so it is excluded from identity. The saved `ledger.json` is local and
+ignored by Git; existing files are never overwritten. Omit `--output` to print a
+fresh record without saving it.
 
 The default benchmark multiplies two seeded 2048×2048 float32 matrices on Metal,
 warms up three times, then measures ten runs. Inputs are evaluated before timing;
@@ -45,6 +50,22 @@ warm matmul latency including dispatch and synchronization, not LLM throughput.
 Use `--size`, `--warmup`, and `--repeats` to change the calibration workload.
 
 Linux CI checks the portable logic and skips the Metal integration test.
+
+## Experiment ledger
+
+[`openloop.ledger`](docs/LEDGER.md) records immutable experiment inputs and
+append-only execution evidence in SQLite. It provides `submit`, `get`, `lineage`,
+and `query`, with per-stage UTC timestamps, cache reuse, retries, and a
+`candidate_hash` that groups one candidate's samples across seeds. Reused
+submissions preserve provenance without adding samples.
+
+[`openloop.probe`](src/openloop/probe.py) runs an explicit replication and records
+the comparison. Inputs declare `reproducibility`: drift on `deterministic` inputs
+disables result-cache reuse, while drift on `noisy` inputs is recorded as measured
+variation.
+
+See the [ledger guide](docs/LEDGER.md) for the schema, API, and a synthetic example.
+The new SQLite ledger is separate from the setup record in `ledger.json`.
 
 ## Frozen training data
 

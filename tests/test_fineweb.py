@@ -4,12 +4,15 @@ import hashlib
 import json
 import shutil
 from io import BytesIO
+from itertools import pairwise
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
 from openloop.fineweb import (
+    BUCKETS,
+    POLICY,
     SPLITS,
     download_shard,
     file_hash,
@@ -32,6 +35,21 @@ from openloop.fineweb import (
 )
 def test_split_boundaries(bucket, expected):
     assert split_for_digest(bucket.to_bytes(8, "big") + bytes(24)) == expected
+
+
+def test_split_agrees_with_policy_buckets():
+    ranges = sorted(POLICY["buckets"].items(), key=lambda item: item[1][0])
+    assert ranges[0][1][0] == 0
+    assert ranges[-1][1][1] == BUCKETS
+    for (_, (_, stop)), (_, (start, _)) in pairwise(ranges):
+        assert stop == start
+    for name, (start, stop) in ranges:
+        for bucket in (start, stop - 1):
+            assert split_for_digest(bucket.to_bytes(8, "big") + bytes(24)) == name
+    owners = [
+        [n for n, (a, b) in ranges if a <= bucket < b] for bucket in range(BUCKETS)
+    ]
+    assert all(len(owner) == 1 for owner in owners)
 
 
 def test_download_publishes_only_verified_bytes(tmp_path, monkeypatch):
@@ -63,7 +81,7 @@ def corpus(tmp_path):
         if all(len(group) == 2 for group in groups.values()):
             break
     texts = [text for group in groups.values() for text in group]
-    rows = [texts[:3] + [texts[0]], texts[3:] + [texts[0]]]
+    rows = [[*texts[:3], texts[0]], [*texts[3:], texts[0]]]
     root = tmp_path / "first"
     (root / "raw").mkdir(parents=True)
     shards = []

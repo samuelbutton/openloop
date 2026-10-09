@@ -18,4 +18,5 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv run --locked pre-commit run --all-files
+      - run: uv run --locked pyright
       - run: uv run --locked pytest

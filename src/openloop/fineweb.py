@@ -15,11 +15,12 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 SPLITS = ("train", "val", "held_out")
+BUCKETS = 10000
 POLICY = {
     "version": 1,
     "text_hash": "SHA-256 of exact UTF-8 text; no normalization",
     "assignment": "first 8 digest bytes as big-endian uint64, modulo 10000",
-    "buckets": {"train": [0, 9000], "val": [9000, 9500], "held_out": [9500, 10000]},
+    "buckets": {"train": [0, 9000], "val": [9000, 9500], "held_out": [9500, BUCKETS]},
     "duplicates": "keep first occurrence in source-shard order, then row order",
     "membership_hash": (
         "SHA-256 of ordered records: >HQ shard_index,row_index + text digest"
@@ -46,8 +47,11 @@ def file_hash(path: Path) -> str:
 
 
 def split_for_digest(digest: bytes) -> str:
-    bucket = int.from_bytes(digest[:8], "big") % 10000
-    return "train" if bucket < 9000 else "val" if bucket < 9500 else "held_out"
+    bucket = int.from_bytes(digest[:8], "big") % BUCKETS
+    for name, (start, stop) in POLICY["buckets"].items():
+        if start <= bucket < stop:
+            return name
+    raise ValueError(f"Bucket outside policy: {bucket}")
 
 
 def verify_file(path: Path, expected: dict) -> None:
@@ -90,7 +94,7 @@ def write_splits(paths: list[Path], directory: Path) -> dict:
         name: pq.ParquetWriter(directory / f"{name}.parquet", SCHEMA) for name in SPLITS
     }
     digests = {name: hashlib.sha256() for name in SPLITS}
-    counts = dict.fromkeys(SPLITS, 0)
+    counts: dict[str, int] = dict.fromkeys(SPLITS, 0)
     duplicates = 0
     source_rows = []
     try:

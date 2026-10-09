@@ -11,3 +11,9 @@ repos:
         entry: uv run --locked ruff format --check
         language: system
         types_or: [python, pyi]
+      - id: pyright
+        name: Pyright
+        entry: uv run --locked pyright
+        language: system
+        pass_filenames: false
+        types_or: [python, pyi]

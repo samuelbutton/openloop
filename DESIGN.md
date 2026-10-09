@@ -13,7 +13,13 @@ It also has recorded MLX runs and tabular load reports.
 The local `ledger.json` stores setup records.
 It is not the append-only ledger specified below.
 
-The core, loop interface, application spend gate, and plugins are not implemented.
+The first ledger implementation is available in `openloop.ledger`.
+It records input manifests, submissions, attempts, lineage, preparation times, stage events, results, and determinism probes.
+Experiment inputs declare whether results are deterministic or noisy.
+`openloop.probe` runs determinism probes through the ledger API.
+The [ledger guide](docs/LEDGER.md) describes its API and schema.
+Campaign records, artifact storage, and spend records remain planned extensions.
+The loop interface, executors, decider, application spend gate, and plugins are not implemented.
 The [model configuration](config/models.toml) selects `gpt-6-astra` as proposer and `gpt-6.1-sol` through Codex CLI as implementer.
 The [billing configuration](config/billing.toml) records a $10 monthly OpenAI limit and $10 of RunPod credit.
 RunPod auto-pay is off.
@@ -27,7 +33,8 @@ These account controls do not implement the application spend gate.
 | Loop | A contract for experiments that change one declared surface. |
 | Hypothesis | A proposed change with a predicted effect and evidence references. |
 | Candidate | An immutable code and configuration snapshot that implements a hypothesis. |
-| Experiment | A complete specification for one candidate, seed, stage, and fidelity. |
+| Experiment | A complete specification for one candidate, seed, phase, and fidelity. |
+| Phase | The verification phase of an experiment, such as screen or held-out. |
 | Attempt | One execution of an experiment. A retry creates a new attempt. |
 | Replication | A deliberate additional measurement of an experiment. |
 | Fidelity | A declared amount of experiment work, such as a training token count. |
@@ -79,7 +86,7 @@ SQLite stores small records and references.
 Parquet artifacts store long metric series.
 Git objects store source snapshots and diffs.
 SHA-256 identifies artifact bytes and canonical manifests.
-Schema version 1 uses these logical tables:
+The target schema uses these logical tables:
 
 | Table | Key and fields |
 | --- | --- |
@@ -87,7 +94,7 @@ Schema version 1 uses these logical tables:
 | `hypothesis` | `hypothesis_id`; campaign ID; text; predicted metric effect; evidence references; proposer request reference. |
 | `candidate` | `candidate_hash`; hypothesis ID; source tree hash; diff artifact hash; configuration hash; dependency lock hash. |
 | `candidate_parent` | Child candidate hash; parent candidate hash; relation such as improve, combine, or debug. |
-| `experiment` | `experiment_hash`; candidate hash; loop specification hash; evaluator hash; data snapshot hash; tokenizer hash; environment hash; seed; stage; fidelity. |
+| `experiment` | `experiment_hash`; candidate hash; loop specification hash; evaluator hash; data snapshot hash; tokenizer hash; environment hash; seed; phase; fidelity; reproducibility. |
 | `attempt` | `attempt_id`; experiment hash; request key; purpose; retry parent; executor identity; declared resource limits. |
 | `event` | Event ID; attempt or campaign ID; sequence number; event type; UTC time; duration; payload hash. |
 | `artifact` | SHA-256; byte count; media type; storage location. An association record links each artifact to its owner and role. |
@@ -184,7 +191,7 @@ class LoopEnv(Protocol):
 | Type | Content |
 | --- | --- |
 | `Observation` | Ledger evidence references, candidate identity, remaining budget, and permitted next actions. |
-| `LoopAction` | Request key, candidate hash, stage, seed, fidelity, and execution purpose. |
+| `LoopAction` | Request key, candidate hash, phase, seed, fidelity, and execution purpose. |
 | `StepResult` | Next observation, attempt references, measurement references, decision references, actual cost, and `episode_done`. |
 
 One environment instance serves one candidate episode.

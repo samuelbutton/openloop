@@ -1,4 +1,4 @@
-"""Capture Apple silicon hardware and a synchronized MLX matmul calibration."""
+"""Capture Apple silicon identity and a separate synchronized MLX matmul calibration."""
 
 import argparse
 import json
@@ -44,7 +44,7 @@ def benchmark_matmul(
     if min(size, repeats, warmup) <= 0:
         raise ValueError("size, repeats, and warmup must be positive")
 
-    import mlx.core as mx
+    import mlx.core as mx  # pyright: ignore[reportMissingImports] # Apple silicon only
 
     if not mx.metal.is_available():
         raise RuntimeError("The MLX Metal GPU backend is unavailable")
@@ -65,9 +65,11 @@ def benchmark_matmul(
             elapsed = perf_counter() - start
             if iteration >= warmup:
                 samples.append(elapsed)
-
-        if not mx.all(mx.isfinite(result)).item():
-            raise RuntimeError("Matmul produced non-finite values")
+            if (
+                iteration == warmup + repeats - 1
+                and not mx.all(mx.isfinite(result)).item()
+            ):
+                raise RuntimeError("Matmul produced non-finite values")
 
     return {
         "device": "gpu",
@@ -79,10 +81,8 @@ def benchmark_matmul(
     }
 
 
-def probe_environment(
-    size: int = 2048, repeats: int = 10, warmup: int = 3
-) -> dict[str, object]:
-    """Collect the environment field for an experiment ledger."""
+def environment_identity() -> dict[str, object]:
+    """Collect stable facts that can affect results, without benchmarking."""
     if platform.system() != "Darwin" or platform.machine() != "arm64":
         raise RuntimeError("The environment probe requires native Apple silicon macOS")
 
@@ -92,17 +92,27 @@ def probe_environment(
         ).strip()
 
     return {
-        "environment": {
+        "chip": sysctl("machdep.cpu.brand_string"),
+        "ram_bytes": int(sysctl("hw.memsize")),
+        "macos": platform.mac_ver()[0],
+        "architecture": platform.machine(),
+        "python": platform.python_version(),
+        "mlx_version": version("mlx"),
+        "mlx_lm_version": version("mlx-lm"),
+    }
+
+
+def probe_environment(
+    size: int = 2048, repeats: int = 10, warmup: int = 3
+) -> dict[str, object]:
+    """Collect a stable environment identity and a separate timed calibration."""
+    environment = environment_identity()
+    return {
+        "environment": environment,
+        "calibration": {
             "captured_at": datetime.now(UTC).isoformat(),
-            "chip": sysctl("machdep.cpu.brand_string"),
-            "ram_bytes": int(sysctl("hw.memsize")),
-            "macos": platform.mac_ver()[0],
-            "architecture": platform.machine(),
-            "python": platform.python_version(),
-            "mlx_version": version("mlx"),
-            "mlx_lm_version": version("mlx-lm"),
             "matmul": benchmark_matmul(size, repeats, warmup),
-        }
+        },
     }
 
 
