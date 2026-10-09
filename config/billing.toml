@@ -1,0 +1,13 @@
+# Verified in provider dashboards on 2026-10-08.
+# These describe account controls; they are not an application budget gate.
+
+[openai]
+project_name = "openloop"
+monthly_limit_usd = 10
+hard_limit_enforced = true
+key_provisioned = true
+
+[runpod]
+prepaid_credit_usd = 10
+auto_pay_enabled = false
+resources_provisioned = false

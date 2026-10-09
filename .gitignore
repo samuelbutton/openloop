@@ -10,6 +10,10 @@ dist/
 htmlcov/
 .DS_Store
 ledger.json
+research/artifacts/account-setup/
+.env
+.env.*
+!.env.example
 research/autoresearch-mlx/
 research/nas-bench-201/
 research/hpo-b/
