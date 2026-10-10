@@ -15,7 +15,13 @@ It has no reset method.
 | `LoopAction` | Seed, phase, fidelity, request key, execution purpose, and optional retry reference. |
 | `Observation` | Candidate hash, evidence references, remaining work allowance, unit, and the names of fidelities the allowance can still fund. |
 | `Job` | Immutable experiment inputs and an optional generated training program. |
+| `RunContext` | Run and attempt identifiers of the admitted attempt. |
 | `StepResult` | Observation, submission and attempt references, run status, measured result, observed work, execution flag, and episode completion flag. |
+
+A runner is an async callable `(Job, RunContext) -> JobOutput`.
+The environment passes the context of the attempt that it admitted.
+A replication has the same inputs as its baseline, so only the attempt identifier tells them apart.
+T0 ignores the context.
 
 The candidate configuration and parents enter the environment constructor.
 They remain fixed during the episode.
@@ -53,7 +59,7 @@ It does not execute or charge work again.
 
 The environment rejects concurrent steps within one episode.
 It does not schedule a shared GPU across several episodes.
-The later executor must enforce that resource limit.
+The [local executor](EXECUTORS.md) enforces that resource limit for T1.
 The decider will supply promotion rules, statistical verdicts, and final evaluation.
 
 ## T0: planted truth
@@ -160,7 +166,11 @@ The worker verifies those bytes before loading them.
 ### Native worker
 
 Constructing T1 and generating jobs do not start training.
-The explicit `T1.run` method starts a child process.
+The explicit `T1.run` method submits a child process to an executor.
+The caller passes the executor to the `T1` constructor as the keyword-only argument `executor`.
+The caller creates it, closes it, and keeps its root directory.
+`T1` does not own its lifecycle.
+`T1.run` raises `ContractError` when no executor was passed.
 The caller must first approve native GPU training.
 The `python` constructor argument names the worker interpreter.
 The coordinator can run in any environment.
@@ -184,13 +194,25 @@ Candidate settings cannot replace this evaluator or its data iterator.
 
 The child receives only `PATH` and the openloop source path in its environment.
 Upstream garbage-collector settings therefore affect the child, not the coordinator.
+T1 submits each job with the attempt identifier as the executor key.
+A replication therefore runs a new worker through the same executor.
+The input hash is not the key, because replications share it.
 A one-hour wall limit stops stalled jobs independently of the token budget.
-Cancellation kills the child and waits for termination.
+The wall limit counts from process start and excludes time spent waiting for the shared GPU lane.
+T1 sets no queue limit, so a job waits for the lane.
+T1 sets no CPU-time limit and no file-size limit.
+A 16 GiB resident RAM limit and a 16 MiB limit per log stream also apply.
+The RAM check samples the process.
+On Apple silicon it excludes Metal and GPU memory, so it does not bound GPU memory.
+These initial limits enter the execution specification, with `null` for each limit that T1 does not set.
+The executor code does not enter any T1 hash.
+The [executor guide](EXECUTORS.md) describes the sampled RAM check and Linux address-space limit.
+Cancellation kills the process group and waits for termination.
 A nonzero exit raises `ContractError`.
-Its message contains the exit code and the last 4,000 characters of stdout and of stderr, each labelled.
+Its message contains the executor state, the exit code, the SHA-256 digests of both logs, and the last 4,000 characters of stdout and of stderr, each labelled.
 Upstream prints `FAIL` to stdout before it exits, so the stdout tail is necessary.
 The ledger failure reason therefore stays bounded.
-This trusted worker is not the planned sandboxed executor.
+This trusted worker uses the local executor, which permits host access.
 It must receive reviewed source snapshots.
 
 Native training and BPB scoring both occur inside the trusted job.
@@ -198,6 +220,18 @@ The ledger execution stage covers that job.
 The ledger evaluation stage validates its receipt and publishes typed measurements.
 The result records `val_bpb` as its metric.
 Observed training seconds and tokens per second are `observations`, which comparisons ignore.
+`T1.run` returns the worker receipt plus an `execution` entry that the coordinator builds from the executor snapshot.
+The entry holds the executor job identifier, state, exit code, queued seconds, process seconds, peak RSS, and log digests and sizes.
+`T1.run` rejects a worker receipt that contains an `execution` key, so the worker cannot forge this evidence.
+The result adds these `observations`:
+
+| Observation | Unit | Meaning |
+| --- | --- | --- |
+| `queued_seconds` | seconds | Submission to process start, including the wait for the GPU lane. |
+| `process_seconds` | seconds | Process start to finish. |
+| `peak_rss_bytes` | bytes | Peak sampled resident RAM; absent when the executor did not observe it. |
+
+The result also records the SHA-256 digests of the worker logs as `artifacts` with the roles `stdout` and `stderr`.
 Training seconds include every trained update, including startup.
 The throughput excludes setup and final validation.
 T1 declares `noisy` reproducibility.
@@ -233,8 +267,10 @@ PYTHONPATH=src research/autoresearch-mlx/.venv/bin/python -m openloop.loops.t1_r
 Omit it outside the upstream runtime.
 The `adapter_hash` field changes whenever an adapter file changes, so regenerate the report after such a change.
 
-A successful worker run returns only its receipt.
-The worker log is discarded.
-Artifact storage does not exist yet, so no run keeps its training log.
+The logs stay in the root directory of the caller's executor.
+Artifact storage does not exist yet, so the caller must retain that directory for as long as it needs the logs to match their recorded digests.
+The attempt record has no field for executor identity, such as the executor kind, its version, or its configuration.
+The ledger stores only the job's result, so this identity remains unrecorded until the schema has such a field.
 Native training, measured throughput, fidelity rank correlation, and the noise floor remain unverified.
-Executor isolation, the shared GPU lane, statistical decisions, and held-out release remain separate tasks.
+The [executors and shared GPU lane](EXECUTORS.md) are implemented and checked with CPU jobs.
+Statistical decisions and held-out release remain separate tasks.

@@ -1,13 +1,16 @@
 """Tiny frozen data and CPU-only source stand-ins; never use native MLX training."""
 
+import asyncio
 import json
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
+from openloop.executors import LocalExecutor
 from openloop.fineweb import POLICY, file_hash, json_hash, write_splits
 from openloop.loops import T0, T1, TrainingSource
 from openloop.loops.corpus import Corpus
@@ -107,7 +110,15 @@ def t0() -> T0:
 
 
 @pytest.fixture
-def t1(corpus: Corpus, tmp_path: Path) -> T1:
+def executor(tmp_path: Path) -> Iterator[LocalExecutor]:
+    """One long-lived executor, as a coordinator would own it."""
+    local = LocalExecutor(tmp_path / "executor")
+    yield local
+    asyncio.run(local.close())
+
+
+@pytest.fixture
+def t1(corpus: Corpus, tmp_path: Path, executor: LocalExecutor) -> T1:
     tokenizer = tmp_path / "tokenizer"
     tokenizer.mkdir()
     for name in ("tokenizer.pkl", "token_bytes.npy"):
@@ -117,4 +128,5 @@ def t1(corpus: Corpus, tmp_path: Path) -> T1:
         corpus,
         tokenizer,
         Path(sys.executable),
+        executor=executor,
     )

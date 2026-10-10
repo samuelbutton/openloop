@@ -8,7 +8,16 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from openloop.ledger import InvalidInputError
-from openloop.loops import T0, ContractError, LoopAction, Phase, PlantedTruth
+from openloop.loops import (
+    T0,
+    ContractError,
+    LoopAction,
+    Phase,
+    PlantedTruth,
+    RunContext,
+)
+
+CONTEXT = RunContext("run", "attempt")
 
 
 @given(
@@ -26,13 +35,15 @@ def test_planted_optimum_is_global(coordinates: list[float]) -> None:
 def test_fixed_seed_and_fidelity_reproduce_samples(t0: T0) -> None:
     config = t0.normalize_config({"coordinates": [0, 0]})
     inputs = t0.spec.inputs(config, LoopAction(42), "a" * 64)
-    first = asyncio.run(t0.run(t0.build_job(inputs)))
-    assert asyncio.run(t0.run(t0.build_job(inputs))) == first
+    first = asyncio.run(t0.run(t0.build_job(inputs), CONTEXT))
+    assert asyncio.run(t0.run(t0.build_job(inputs), CONTEXT)) == first
     other = replace(inputs, seed=43)
-    assert asyncio.run(t0.run(t0.build_job(other))) != first
+    assert asyncio.run(t0.run(t0.build_job(other), CONTEXT)) != first
     full = t0.spec.inputs(config, LoopAction(42, "4x", Phase.CONFIRM), "a" * 64)
     assert (
-        t0.evaluate(t0.build_job(full), asyncio.run(t0.run(t0.build_job(full))))
+        t0.evaluate(
+            t0.build_job(full), asyncio.run(t0.run(t0.build_job(full), CONTEXT))
+        )
         .metrics["loss"]
         .sample_count
         == 4
@@ -70,7 +81,7 @@ def test_held_out_phase_is_not_a_selection_action() -> None:
 
 def sample_residuals(t0: T0, inputs) -> list[float]:
     job = t0.build_job(inputs)
-    samples = asyncio.run(t0.run(job))["samples"]
+    samples = asyncio.run(t0.run(job, CONTEXT))["samples"]
     assert isinstance(samples, tuple)
     coordinates = inputs.config["coordinates"]
     assert isinstance(coordinates, tuple)

@@ -26,6 +26,7 @@ from .models import (
     Job,
     JobOutput,
     LoopSpec,
+    RunContext,
 )
 
 
@@ -123,7 +124,7 @@ class T0:
             raise ContractError("Candidate settings must be normalized")
         return Job(inputs)
 
-    async def run(self, job: Job) -> JobOutput:
+    async def run(self, job: Job, _context: RunContext) -> JobOutput:
         self.build_job(job.inputs)
         values = job.inputs.config["coordinates"]
         if not isinstance(values, (list, tuple)):

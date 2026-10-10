@@ -14,6 +14,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from openloop.executors import (
+    ArtifactRole,
+    Executor,
+    Limits,
+    ProcessJob,
+    Snapshot,
+    State,
+)
 from openloop.ledger import (
     Direction,
     ExperimentInputs,
@@ -39,6 +47,7 @@ from .models import (
     Job,
     JobOutput,
     LoopSpec,
+    RunContext,
 )
 from .training import TrainingSetting, baseline_config, training_program
 
@@ -51,8 +60,13 @@ UPSTREAM_HASHES = {
 SEQUENCE_LENGTH = 2048
 EVALUATION_TOKENS = 1_572_864
 EVALUATION_BATCH = 256
+# The wall limit counts from process start. T1 sets no queue, CPU, or file-size
+# limit: jobs wait for the GPU lane, and training is bounded by wall time.
 WALL_LIMIT_SECONDS = 3600
+MEMORY_LIMIT_BYTES = 16 * 1024**3
+WORKER_LOG_LIMIT_BYTES = 16 * 1024**2
 LOG_TAIL_CHARACTERS = 4_000
+EXECUTION_KEY = "execution"
 FIDELITIES = (Fidelity("8m", 8_388_608), Fidelity("21m", 20_971_520))
 ADAPTER_FILES = (
     "t1.py",
@@ -113,6 +127,35 @@ def _tail(data: bytes) -> str:
     return data.decode("utf-8", errors="replace")[-LOG_TAIL_CHARACTERS:]
 
 
+def _execution_evidence(snapshot: Snapshot) -> Mapping[str, JSONValue]:
+    """Coordinator-observed executor values. Absent values stay absent."""
+    evidence: dict[str, JSONValue] = {
+        "job_id": snapshot.job_id,
+        "state": str(snapshot.state),
+        "logs": {
+            artifact.path.name: {
+                "sha256": artifact.sha256,
+                "size_bytes": artifact.size_bytes,
+            }
+            for artifact in snapshot.artifacts
+            if artifact.role == ArtifactRole.LOG
+        },
+    }
+    for name in ("exit_code", "queued_seconds", "elapsed_seconds", "peak_rss_bytes"):
+        value = getattr(snapshot, name)
+        if value is not None:
+            evidence[name] = value
+    return evidence
+
+
+def _log_digests(snapshot: Snapshot) -> str:
+    return ", ".join(
+        f"{artifact.path.name} sha256={artifact.sha256}"
+        for artifact in snapshot.artifacts
+        if artifact.role == ArtifactRole.LOG
+    )
+
+
 def tokenizer_digest(directory: Path) -> str:
     return content_hash(
         {
@@ -131,12 +174,17 @@ class T1:
         corpus: Corpus,
         tokenizer_dir: Path,
         python: Path,
+        *,
+        executor: Executor | None = None,
     ) -> None:
         """`python` runs the worker. It must have the locked upstream dependencies.
 
         The path is machine-specific, so it never enters the specification.
         The worker checks installed versions against the locked dependencies.
+        The caller owns `executor`: it creates and closes it, and keeps its logs.
+        Only `run` needs one; the worker builds the loop without it.
         """
+        self._executor = executor
         self._python = python
         self._source = source
         self._corpus = corpus
@@ -164,6 +212,11 @@ class T1:
                 "evaluation_tokens": EVALUATION_TOKENS,
                 "evaluation_batch": EVALUATION_BATCH,
                 "wall_limit_seconds": WALL_LIMIT_SECONDS,
+                "queue_limit_seconds": None,
+                "cpu_limit_seconds": None,
+                "file_limit_bytes": None,
+                "memory_limit_bytes": MEMORY_LIMIT_BYTES,
+                "worker_log_limit_bytes": WORKER_LOG_LIMIT_BYTES,
             },
         )
 
@@ -248,8 +301,16 @@ class T1:
             ),
         )
 
-    async def run(self, job: Job) -> JobOutput:
-        """Run trusted training explicitly, after the caller approves GPU training."""
+    async def run(self, job: Job, context: RunContext) -> JobOutput:
+        """Run trusted training explicitly, after the caller approves GPU training.
+
+        The executor job key is the attempt, so a replication runs again.
+        The result holds the worker receipt and, under `execution`, the values
+        that the coordinator observed. The worker cannot supply that key.
+        """
+        executor = self._executor
+        if executor is None:
+            raise ContractError("T1.run requires an executor")
         if self.build_job(job.inputs) != job:
             raise ContractError("Job program differs from the frozen adapter")
         payload = canonical_json(
@@ -260,28 +321,42 @@ class T1:
                 "job": job,
             }
         ).encode("utf-8")
-        process = await asyncio.create_subprocess_exec(
-            str(self.python),
-            "-m",
-            "openloop.loops.t1_worker",
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env={"PATH": os.defpath, "PYTHONPATH": str(Path(__file__).parents[2])},
+        request = ProcessJob(
+            (str(self.python), "-m", "openloop.loops.t1_worker"),
+            stdin=payload,
+            environment={
+                "PATH": os.defpath,
+                "PYTHONPATH": str(Path(__file__).parents[2]),
+            },
+            reviewed=True,
+            gpu=True,
+            limits=Limits(
+                wall_seconds=WALL_LIMIT_SECONDS,
+                memory_bytes=MEMORY_LIMIT_BYTES,
+                output_bytes=WORKER_LOG_LIMIT_BYTES,
+            ),
         )
+        identifier = await executor.submit(request, key=context.attempt_id)
         try:
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(payload), timeout=WALL_LIMIT_SECONDS
-            )
-        except BaseException:
-            if process.returncode is None:
-                process.kill()
-            await process.wait()
+            snapshot = await executor.collect(identifier)
+        except asyncio.CancelledError:
+            # collect() is shielded, so a cancelled step must stop its own job;
+            # otherwise training keeps running and holds the GPU lane.
+            await executor.cancel(identifier)
             raise
-        if process.returncode != 0:
+        logs = {
+            artifact.path.name: artifact.path.read_bytes()
+            for artifact in snapshot.artifacts
+            if artifact.role == ArtifactRole.LOG
+        }
+        stdout, stderr = logs.get("stdout", b""), logs.get("stderr", b"")
+        if snapshot.state != State.SUCCEEDED:
             raise ContractError(
-                "Training worker failed with exit code "
-                f"{process.returncode}\n--- stdout tail ---\n{_tail(stdout)}"
+                f"Training worker failed with exit code {snapshot.exit_code} "
+                f"({snapshot.state}): {snapshot.error or ''}"
+                f"\nexecutor job {snapshot.job_id}; log digests: "
+                f"{_log_digests(snapshot)}"
+                f"\n--- stdout tail ---\n{_tail(stdout)}"
                 f"\n--- stderr tail ---\n{_tail(stderr)}"
             )
         records = stdout.decode("utf-8").splitlines()
@@ -290,7 +365,9 @@ class T1:
         output = plain(json.loads(records[-1].removeprefix("OPENLOOP_RESULT ")))
         if not isinstance(output, Mapping):
             raise ContractError("Worker result must be a JSON object")
-        return freeze_object(output)
+        if EXECUTION_KEY in output:
+            raise ContractError(f"Worker receipt must not contain {EXECUTION_KEY!r}")
+        return freeze_object({**output, EXECUTION_KEY: _execution_evidence(snapshot)})
 
     def evaluate(self, job: Job, output: JobOutput) -> Result:
         batch = job.inputs.config[TrainingSetting.TOTAL_BATCH_SIZE]
@@ -319,11 +396,47 @@ class T1:
         seconds = finite_number(output.get("training_seconds"), "Training seconds")
         if seconds <= 0:
             raise ContractError("Observed training seconds must be positive")
+        evidence = output.get(EXECUTION_KEY)
+        if (
+            not isinstance(evidence, Mapping)
+            or evidence.get("state") != State.SUCCEEDED
+        ):
+            raise ContractError("Result lacks executor evidence of a successful job")
+        observed = {
+            "queued_seconds": Metric(
+                finite_number(evidence.get("queued_seconds"), "Queued seconds"),
+                "seconds",
+                split="execution",
+            ),
+            "process_seconds": Metric(
+                finite_number(evidence.get("elapsed_seconds"), "Process seconds"),
+                "seconds",
+                split="execution",
+            ),
+        }
+        if evidence.get("peak_rss_bytes") is not None:
+            observed["peak_rss_bytes"] = Metric(
+                finite_number(evidence["peak_rss_bytes"], "Peak RSS"),
+                "bytes",
+                split="execution",
+            )
+        logs = evidence.get("logs")
+        if not isinstance(logs, Mapping):
+            raise ContractError("Executor evidence lacks log digests")
+        digests: dict[str, str] = {}
+        for role in ("stdout", "stderr"):
+            log = logs.get(role)
+            digest = log.get("sha256") if isinstance(log, Mapping) else None
+            if not isinstance(digest, str):
+                raise ContractError(f"Executor evidence lacks the {role} digest")
+            digests[role] = digest
         return Result(
             {
                 self.spec.metric_name: Metric(score, self.spec.metric_unit),
             },
+            artifacts=digests,
             observations={
+                **observed,
                 "training_seconds": Metric(seconds, "seconds", split="train"),
                 "tokens_per_second": Metric(
                     job.inputs.budget_amount / seconds,

@@ -10,7 +10,7 @@
   "python": "3.12.13",
   "seed": 42,
   "tokenizer_dir": "/frozen/tokenizer",
-  "adapter_hash": "3a36646842f5ff0a7f828cd57ed8efae1b57a746fb4005074c5f736dfd75fc2b",
+  "adapter_hash": "f6c996e0ef730cf20338e88e6fd0ad822910c04a7bc4501c378c1544c17a1651",
   "fidelities": [
     {
       "name": "8m",

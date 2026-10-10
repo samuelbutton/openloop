@@ -21,7 +21,8 @@ The [ledger guide](docs/LEDGER.md) describes its API and schema.
 Campaign records, artifact storage, and spend records remain planned extensions.
 The [loop interface and T0/T1 adapters](docs/LOOPS.md) are implemented.
 T1 job generation and CPU stand-ins are checked; native training remains unverified.
-The general executors, decider, application spend gate, and plugins are not implemented.
+The [local and container executors](docs/EXECUTORS.md) are implemented.
+The mock executor, GCP stub, decider, application spend gate, and plugins remain planned.
 The [model configuration](config/models.toml) selects `gpt-6-astra` as proposer and `gpt-6.1-sol` through Codex CLI as implementer.
 The [billing configuration](config/billing.toml) records a $10 monthly OpenAI limit and $10 of RunPod credit.
 RunPod auto-pay is off.
@@ -241,6 +242,12 @@ Network exceptions require an explicit job policy.
 The worker stops jobs that exceed their declared limits.
 
 The first Mac implementation runs one MLX training job at a time.
+T1 now uses the local executor and its user-wide GPU lock.
+The container executor uses a pinned local Docker image.
+Its source and explicit inputs are read-only. Temporary writes stay in the container, and
+the candidate can write limited, hashed files to an outputs directory.
+Executor ownership and idempotency remain in memory.
+The [executor guide](docs/EXECUTORS.md) gives the limits and failure semantics.
 RunPod remains unused until a GPU workload is approved.
 Later training adapters can expose `forward_backward`, `optim_step`, `sample`, and `save_state` operations.
 Those operations do not replace the experiment contract or create a new training framework.

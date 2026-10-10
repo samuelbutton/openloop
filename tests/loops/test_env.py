@@ -15,6 +15,7 @@ from openloop.loops import (
     LoopAction,
     LoopEnv,
     Phase,
+    RunContext,
 )
 
 
@@ -80,7 +81,7 @@ def test_request_replay_does_not_charge_twice(t0: T0, ledger: Ledger) -> None:
 def test_runner_failure_preserves_evidence_and_allowance(
     t0: T0, ledger: Ledger
 ) -> None:
-    async def crash(job: Job) -> JobOutput:
+    async def crash(job: Job, context: RunContext) -> JobOutput:
         raise RuntimeError("Worker crashed")
 
     env = ExperimentEnv(
@@ -102,7 +103,7 @@ def test_runner_failure_preserves_evidence_and_allowance(
 def test_invalid_output_fails_without_completed_evidence(
     t0: T0, ledger: Ledger
 ) -> None:
-    async def invalid(job: Job) -> JobOutput:
+    async def invalid(job: Job, context: RunContext) -> JobOutput:
         return {"samples": (1.0,), "work_units": 999}
 
     env = ExperimentEnv(
@@ -123,10 +124,10 @@ def test_concurrent_step_is_rejected_before_admission(t0: T0, ledger: Ledger) ->
     async def scenario() -> None:
         entered, release = asyncio.Event(), asyncio.Event()
 
-        async def slow(job: Job) -> JobOutput:
+        async def slow(job: Job, context: RunContext) -> JobOutput:
             entered.set()
             await release.wait()
-            return await t0.run(job)
+            return await t0.run(job, context)
 
         env = ExperimentEnv(
             t0,
@@ -158,8 +159,8 @@ def test_loop_cannot_change_its_frozen_spec(t0: T0, ledger: Ledger) -> None:
 def test_contract_change_during_execution_cannot_publish(
     t0: T0, ledger: Ledger
 ) -> None:
-    async def change(job: Job) -> JobOutput:
-        output = await t0.run(job)
+    async def change(job: Job, context: RunContext) -> JobOutput:
+        output = await t0.run(job, context)
         t0._spec = replace(t0.spec, evaluator_hash="b" * 64)
         return output
 
@@ -222,3 +223,27 @@ def test_candidate_hash_matches_experiment_candidate(t0: T0, ledger: Ledger) -> 
     assert t0.spec.candidate_hash(t0.normalize_config({"coordinates": [1, 0]})) != (
         step.observation.candidate_hash
     )
+
+
+def test_runner_receives_the_admitted_attempt_identity(t0: T0, ledger: Ledger) -> None:
+    seen: list[RunContext] = []
+
+    async def record(job: Job, context: RunContext) -> JobOutput:
+        seen.append(context)
+        return await t0.run(job, context)
+
+    env = ExperimentEnv(
+        t0,
+        ledger,
+        runner=record,
+        config={"coordinates": [0, 0]},
+        environment_hash="a" * 64,
+        budget=2,
+    )
+    first = asyncio.run(env.step(LoopAction(42)))
+    second = asyncio.run(env.step(LoopAction(42, purpose=Purpose.REPLICATION)))
+    assert seen == [
+        RunContext(first.run_id, first.attempt_id),
+        RunContext(second.run_id, second.attempt_id),
+    ]
+    assert seen[0].attempt_id != seen[1].attempt_id
