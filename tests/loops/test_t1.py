@@ -1,12 +1,15 @@
 """T1 contract and trusted worker use CPU stand-ins, never MLX or GPU training."""
 
 import asyncio
+import hashlib
 import os
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from openloop.executors import LocalExecutor
 from openloop.ledger import Ledger, Purpose
 from openloop.loops import (
     T1,
@@ -14,10 +17,13 @@ from openloop.loops import (
     ExperimentEnv,
     LoopAction,
     Phase,
+    RunContext,
     TrainingSource,
 )
-from openloop.loops.t1 import LOG_TAIL_CHARACTERS
+from openloop.loops.t1 import ADAPTER_FILES, LOG_TAIL_CHARACTERS
 from openloop.loops.t1_worker import run_training, verify_runtime
+
+CONTEXT = RunContext("run", "attempt")
 
 
 def test_two_token_fidelities_complete_through_shared_contract(
@@ -143,7 +149,9 @@ resolution-markers = ["python_full_version >= '3.11'"]
 
 
 @pytest.mark.skipif(os.name != "posix", reason="process liveness uses POSIX signal 0")
-def test_cancellation_reaps_cpu_worker(t1: T1, ledger: Ledger, tmp_path: Path) -> None:
+def test_cancellation_reaps_cpu_worker(
+    t1: T1, ledger: Ledger, tmp_path: Path, executor: LocalExecutor
+) -> None:
     marker = tmp_path / "worker-started"
     prepare = (
         t1.source.prepare
@@ -155,7 +163,11 @@ time.sleep(3600)
 """
     )
     loop = T1(
-        replace(t1.source, prepare=prepare), t1.corpus, t1.tokenizer_dir, t1.python
+        replace(t1.source, prepare=prepare),
+        t1.corpus,
+        t1.tokenizer_dir,
+        t1.python,
+        executor=executor,
     )
     env = ExperimentEnv(
         loop,
@@ -176,34 +188,44 @@ time.sleep(3600)
             pending.cancel()
             with pytest.raises(asyncio.CancelledError):
                 await pending
+        # Check inside the running loop: loop teardown must not be what stops it.
+        with pytest.raises(ProcessLookupError):
+            os.kill(int(marker.read_text()), 0)
 
     asyncio.run(scenario())
-    with pytest.raises(ProcessLookupError):
-        os.kill(int(marker.read_text()), 0)
     assert len(ledger.query(status="failed")) == 1
     assert asyncio.run(env.initial_observation()).remaining_budget == 0
 
 
-def run_failing_worker(t1: T1, failure: str) -> str:
+def run_failing_worker(t1: T1, executor: LocalExecutor, failure: str) -> str:
     prepare = t1.source.prepare + "\nimport sys\n" + failure
     loop = T1(
-        replace(t1.source, prepare=prepare), t1.corpus, t1.tokenizer_dir, t1.python
+        replace(t1.source, prepare=prepare),
+        t1.corpus,
+        t1.tokenizer_dir,
+        t1.python,
+        executor=executor,
     )
     inputs = loop.spec.inputs(loop.normalize_config({}), LoopAction(42), "a" * 64)
     with pytest.raises(ContractError) as error:
-        asyncio.run(loop.run(loop.build_job(inputs)))
+        asyncio.run(loop.run(loop.build_job(inputs), CONTEXT))
     return str(error.value)
 
 
-def test_failure_reason_includes_stdout_when_stderr_is_empty(t1: T1) -> None:
-    reason = run_failing_worker(t1, "print('FAIL')\nsys.exit(1)\n")
+def test_failure_reason_includes_stdout_when_stderr_is_empty(
+    t1: T1, executor: LocalExecutor
+) -> None:
+    reason = run_failing_worker(t1, executor, "print('FAIL')\nsys.exit(1)\n")
     assert "exit code 1" in reason
     assert "--- stdout tail ---\nFAIL" in reason
 
 
-def test_failure_reason_keeps_only_bounded_tails(t1: T1) -> None:
+def test_failure_reason_keeps_only_bounded_tails(
+    t1: T1, executor: LocalExecutor
+) -> None:
     reason = run_failing_worker(
         t1,
+        executor,
         "print('S' * 20000 + 'STDOUT-END')\n"
         "sys.stderr.write('E' * 20000 + 'STDERR-END')\n"
         "sys.exit(1)\n",
@@ -215,6 +237,123 @@ def test_failure_reason_keeps_only_bounded_tails(t1: T1) -> None:
     assert len(reason) < 3 * LOG_TAIL_CHARACTERS
 
 
-def test_worker_python_stays_out_of_the_specification(t1: T1, tmp_path: Path) -> None:
-    other = T1(t1.source, t1.corpus, t1.tokenizer_dir, tmp_path / "elsewhere/python")
+def test_worker_python_stays_out_of_the_specification(
+    t1: T1, tmp_path: Path, executor: LocalExecutor
+) -> None:
+    other = T1(
+        t1.source,
+        t1.corpus,
+        t1.tokenizer_dir,
+        tmp_path / "elsewhere/python",
+        executor=executor,
+    )
     assert other.spec == t1.spec
+
+
+def test_failure_reason_names_executor_state_and_log_digests(
+    t1: T1, executor: LocalExecutor
+) -> None:
+    reason = run_failing_worker(t1, executor, "print('FAIL')\nsys.exit(3)\n")
+    (directory,) = (path.parent for path in executor.root.glob("*/stdout"))
+    assert "exit code 3 (failed)" in reason
+    assert f"executor job {directory.name}" in reason
+    for name in ("stdout", "stderr"):
+        digest = hashlib.sha256((directory / name).read_bytes()).hexdigest()
+        assert f"{name} sha256={digest}" in reason
+
+
+def test_replication_through_one_executor_runs_a_second_worker(
+    t1: T1, ledger: Ledger, executor: LocalExecutor
+) -> None:
+    env = ExperimentEnv(
+        t1,
+        ledger,
+        runner=t1.run,
+        config={},
+        environment_hash="a" * 64,
+        budget=2 * 8_388_608,
+    )
+
+    async def scenario() -> tuple[Any, Any]:
+        first = await env.step(LoopAction(42))
+        second = await env.step(LoopAction(42, purpose=Purpose.REPLICATION))
+        return first, second
+
+    first, second = asyncio.run(scenario())
+    assert first.attempt_id != second.attempt_id
+    assert first.executed
+    assert second.executed
+    assert len(list(executor.root.glob("*/stdout"))) == 2
+
+
+def test_result_records_coordinator_observed_executor_evidence(
+    t1: T1, ledger: Ledger, executor: LocalExecutor
+) -> None:
+    env = ExperimentEnv(
+        t1,
+        ledger,
+        runner=t1.run,
+        config={},
+        environment_hash="a" * 64,
+        budget=8_388_608,
+    )
+    step = asyncio.run(env.step(LoopAction(42)))
+    assert step.result is not None
+    (directory,) = (path.parent for path in executor.root.glob("*/stdout"))
+    for role in ("stdout", "stderr"):
+        digest = hashlib.sha256((directory / role).read_bytes()).hexdigest()
+        assert step.result.artifacts[role] == digest
+    observations = step.result.observations
+    assert observations["queued_seconds"].value >= 0
+    assert observations["process_seconds"].value > 0
+    assert observations["process_seconds"].unit == "seconds"
+    assert observations["training_seconds"].value > 0
+    if "peak_rss_bytes" in observations:
+        assert observations["peak_rss_bytes"].unit == "bytes"
+
+
+def test_worker_cannot_supply_executor_evidence(
+    t1: T1, executor: LocalExecutor
+) -> None:
+    forged = (
+        "import json\n"
+        'forged = {"execution": {"state": "succeeded"}}\n'
+        'print("OPENLOOP_RESULT " + json.dumps(forged))\n'
+        "import sys\nsys.exit(0)\n"
+    )
+    loop = T1(
+        replace(t1.source, prepare=t1.source.prepare + "\n" + forged),
+        t1.corpus,
+        t1.tokenizer_dir,
+        t1.python,
+        executor=executor,
+    )
+    inputs = loop.spec.inputs(loop.normalize_config({}), LoopAction(42), "a" * 64)
+    with pytest.raises(ContractError, match="must not contain 'execution'"):
+        asyncio.run(loop.run(loop.build_job(inputs), CONTEXT))
+
+
+def test_evaluator_rejects_missing_executor_evidence(t1: T1) -> None:
+    inputs = t1.spec.inputs(t1.normalize_config({}), LoopAction(42), "a" * 64)
+    output = {
+        "work_units": 8_388_608,
+        "steps": 128,
+        "evaluation_tokens": 1_572_864,
+        "val_bpb": 1.0,
+        "training_seconds": 1.0,
+    }
+    with pytest.raises(ContractError, match="executor evidence"):
+        t1.evaluate(t1.build_job(inputs), output)
+
+
+def test_run_requires_an_executor(t1: T1) -> None:
+    loop = T1(t1.source, t1.corpus, t1.tokenizer_dir, t1.python)
+    inputs = loop.spec.inputs(loop.normalize_config({}), LoopAction(42), "a" * 64)
+    with pytest.raises(ContractError, match="requires an executor"):
+        asyncio.run(loop.run(loop.build_job(inputs), CONTEXT))
+
+
+def test_adapter_identity_excludes_executor_code() -> None:
+    root = Path(__file__).parents[2] / "src/openloop/loops"
+    for name in ADAPTER_FILES:
+        assert (root / name).resolve().parent == root.resolve()

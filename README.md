@@ -75,6 +75,14 @@ MLX training script to exact token budgets at two fidelities (8m and 21m tokens)
 Candidate settings, frozen evaluators, and work limits are checked before publication.
 The [loop guide](docs/LOOPS.md) includes an offline example and native-worker requirements.
 
+## Executors
+
+[`openloop.executors`](docs/EXECUTORS.md) provides local processes and committed Git
+source inside Docker. Both expose `submit`, `poll`, `cancel`, and `collect`, with
+idempotent keys, lifecycle timestamps, resource limits, and hashed logs.
+The sandbox denies network access by default. T1 uses the local executor and one
+shared GPU lane. See the [executor guide](docs/EXECUTORS.md) for trust boundaries.
+
 ## Frozen training data
 
 The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,

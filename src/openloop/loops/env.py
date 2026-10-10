@@ -21,6 +21,7 @@ from .models import (
     LoopAction,
     LoopSpec,
     Observation,
+    RunContext,
     Runner,
     StepResult,
     Workload,
@@ -126,7 +127,7 @@ class ExperimentEnv:
             self._remaining -= inputs.budget_amount
             try:
                 self._ledger.start_stage(run.id, Stage.EXECUTION)
-                output = await self._runner(job)
+                output = await self._runner(job, RunContext(run.id, run.attempt_id))
                 if (
                     self._workload.spec != self.spec
                     or self._workload.build_job(inputs) != job

@@ -223,7 +223,27 @@ class Job:
 
 
 type JobOutput = Mapping[str, JSONValue]
-type Runner = Callable[[Job], Awaitable[JobOutput]]
+
+
+@dataclass(frozen=True)
+class RunContext:
+    """Identity of the admitted attempt that a runner executes.
+
+    A replication has the same inputs as its baseline, so runners that need a
+    unique key per execution use `attempt_id`, never the input hash.
+    """
+
+    run_id: str
+    attempt_id: str
+
+    def __post_init__(self) -> None:
+        check_text(self.run_id)
+        check_text(self.attempt_id)
+        if not self.run_id or not self.attempt_id:
+            raise ContractError("Run context needs run and attempt identifiers")
+
+
+type Runner = Callable[[Job, RunContext], Awaitable[JobOutput]]
 
 
 class Workload(Protocol):
