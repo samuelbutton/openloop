@@ -88,6 +88,20 @@ idempotent keys, lifecycle timestamps, resource limits, and hashed logs.
 The sandbox denies network access by default. T1 uses the local executor and one
 shared GPU lane. See the [executor guide](docs/EXECUTORS.md) for trust boundaries.
 
+## Decider
+
+[`openloop.decider`](docs/DECIDER.md) freezes the comparison family, noise
+calibration, and seed schedules. It offers noise-aware and AutoScientists screen
+policies. Both use fresh-seed confirmation with a family error bound, followed by
+one trusted held-out batch after selection closes. The coordinator is in memory;
+held-out file isolation and durable campaign records remain host responsibilities.
+The [CPU-only T0 study](docs/decider-t0.json) measures detection rate across effect sizes
+and false-confirmation rate under nulls for each decision rule on simulated truth.
+
+```sh
+uv run python -m openloop.studies.t0_decider --trials 384 --output docs/decider-t0.json
+```
+
 ## Frozen training data
 
 The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,

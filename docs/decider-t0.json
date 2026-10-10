@@ -1,0 +1,1304 @@
+{
+  "adapter": "T0",
+  "alpha": 0.05,
+  "arms": {
+    "autoscientists_family": {
+      "confirmation_scope": "family",
+      "policy": "autoscientists",
+      "screen_margin_sigmas": 0.5,
+      "trial_0_protocol_hash_by_effect": {
+        "0": "f30505d8020c49fc0dcd1cf49244ea0c8d3b32ade6be216e0b23b4c5f4feb1d4",
+        "0.25": "6e7deab646d12b1f0a3866cd368d71b5a517b50beb654e442eed758653f09f2a",
+        "0.5": "5f0f35d5074d792919d0594b5f7bfc6b81d6b4d7a06983b7e4478bc64492ca20",
+        "1": "bb585bac710fe1686f1410fbdbc27cf9fbdd04c9b13df97284fb7b6efea57b5a",
+        "2": "5831274936359ac6fa3e056f79457f4807c019e33986b084fa2a52a562e98a64",
+        "3": "66dcb765561f06d4e53b87884797d6c1d3e4ab812cba6abfb43e479442c9ee89"
+      }
+    },
+    "noise_aware_margin_0.5_family": {
+      "confirmation_scope": "family",
+      "policy": "noise_aware",
+      "screen_margin_sigmas": 0.5,
+      "trial_0_protocol_hash_by_effect": {
+        "0": "1a11f00600a7106f4c9be455ccf545b66e4dc0b0e205910652ef6a5b179af65d",
+        "0.25": "e0f0da3b8ece8f196360b48bfbd28aa0e646f4d967dc6c12c4274428e35168a7",
+        "0.5": "b5b1c7d66147380e3568852f0ae316293e58321da64ecfe1ff496149f84526f3",
+        "1": "180972710dcb3fbf7390f830c471dc4b817695058d602d82928303cd3f7c032f",
+        "2": "19205aaf8bb6a00232654c54d94c605444efabd624951067e95e2e89dc48c7df",
+        "3": "7e1925c7b46aa97e9aebde221edd50179bea8e19142ac108dd207564748ad445"
+      }
+    },
+    "noise_aware_margin_0.5_screened": {
+      "confirmation_scope": "screened",
+      "policy": "noise_aware",
+      "screen_margin_sigmas": 0.5,
+      "trial_0_protocol_hash_by_effect": {
+        "0": "ad15a2ee8afd331cac15e2c224c10a834a63b7da625e9b8774dbe90235bb84f9",
+        "0.25": "0378e3d0e77d3155fc76e679b4bf3c9bb41e3e9932b31b3c4c9c21d59e6286d9",
+        "0.5": "8cb6a436eca1814648253de51b5a29a4c8c730b2120007d2390113f157503f7a",
+        "1": "5d9a1b384e0b1745476220900c180371df68ef886ddfb7c3bd4996747374b037",
+        "2": "b5697de90ce6c9f96ccbaf0aba976bb9c6a037d5ac4ac8b0b087b3a9a441f671",
+        "3": "baa205d426d6feb74402980fa76c204114efbd836d030f31d81ed257fd10d81a"
+      }
+    },
+    "noise_aware_margin_2.0_family": {
+      "confirmation_scope": "family",
+      "policy": "noise_aware",
+      "screen_margin_sigmas": 2.0,
+      "trial_0_protocol_hash_by_effect": {
+        "0": "8ddbe7907f81a1b410ec60f946dd3f5bed9cd9c1c3149b378ecbd4180bd2d0ce",
+        "0.25": "0fcb06f1935a9f861504ac61c1aa07b31655c74706f8e29dc07a9abc80ecf062",
+        "0.5": "e6065264b7206a8ca41a17451b800b3fe2a024d2558f95b821e80d27fd15b4fe",
+        "1": "f86a8e51fd50f81d6dce99820a4a275a5f09f1d6f08b2a41659319eaf004300d",
+        "2": "6fda81cfa2d2c55991a79f4a5453b6ac55d85d00e2a74a27ded73132fad3be86",
+        "3": "95d45bb5b1e227a811013e84c76da0b6f091b3a806b1f2a3b4e30f0de9bc49df"
+      }
+    }
+  },
+  "calibration_seed_pairs_per_fidelity": 5,
+  "confirm_noise_sigma": 0.05,
+  "decider_version": 1,
+  "effect_unit": "screen-fidelity per-run noise sigma",
+  "flags": {
+    "effects": [
+      0.0,
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      3.0
+    ],
+    "family_size": 8,
+    "trials": 384
+  },
+  "results": {
+    "autoscientists_family": {
+      "0": {
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 5,
+          "rate": 0.013020833333333334,
+          "trials": 384,
+          "wilson95": [
+            0.005574200232819548,
+            0.030114245559491583
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 3.0182291666666665,
+        "mean_screen_noise_sigma": 0.09326255427662346
+      },
+      "0.25": {
+        "detection": {
+          "count": 3,
+          "rate": 0.0078125,
+          "trials": 384,
+          "wilson95": [
+            0.0026604410407413143,
+            0.022714512193198817
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.8828125,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 8,
+          "rate": 0.020833333333333332,
+          "trials": 384,
+          "wilson95": [
+            0.010593552490377625,
+            0.040565132139490014
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "0.5": {
+        "detection": {
+          "count": 33,
+          "rate": 0.0859375,
+          "trials": 384,
+          "wilson95": [
+            0.06184545948140756,
+            0.11823188212809761
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.9557291666666665,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 49,
+          "rate": 0.12760416666666666,
+          "trials": 384,
+          "wilson95": [
+            0.09788289762473218,
+            0.164702384451741
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "1": {
+        "detection": {
+          "count": 209,
+          "rate": 0.5442708333333334,
+          "trials": 384,
+          "wilson95": [
+            0.4942646264941213,
+            0.5934000602520324
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 3.0416666666666665,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 212,
+          "rate": 0.5520833333333334,
+          "trials": 384,
+          "wilson95": [
+            0.5020742666519531,
+            0.6010606589317571
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "2": {
+        "detection": {
+          "count": 337,
+          "rate": 0.8776041666666666,
+          "trials": 384,
+          "wilson95": [
+            0.8410326587205206,
+            0.9066955517613771
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 3.2786458333333335,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 337,
+          "rate": 0.8776041666666666,
+          "trials": 384,
+          "wilson95": [
+            0.8410326587205206,
+            0.9066955517613771
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "3": {
+        "detection": {
+          "count": 376,
+          "rate": 0.9791666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.9594348678605099,
+            0.9894064475096224
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 3.3802083333333335,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 376,
+          "rate": 0.9791666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.9594348678605099,
+            0.9894064475096224
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      }
+    },
+    "noise_aware_margin_0.5_family": {
+      "0": {
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.6744791666666665,
+        "mean_screen_noise_sigma": 0.09326255427662346
+      },
+      "0.25": {
+        "detection": {
+          "count": 2,
+          "rate": 0.005208333333333333,
+          "trials": 384,
+          "wilson95": [
+            0.0014294767815511856,
+            0.01878873017320344
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 3,
+          "rate": 0.0078125,
+          "trials": 384,
+          "wilson95": [
+            0.0026604410407413143,
+            0.022714512193198817
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.53125,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 7,
+          "rate": 0.018229166666666668,
+          "trials": 384,
+          "wilson95": [
+            0.008857651772003901,
+            0.03714428657867824
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "0.5": {
+        "detection": {
+          "count": 31,
+          "rate": 0.08072916666666667,
+          "trials": 384,
+          "wilson95": [
+            0.0574539506886641,
+            0.11230989836247007
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 3,
+          "rate": 0.0078125,
+          "trials": 384,
+          "wilson95": [
+            0.0026604410407413143,
+            0.022714512193198817
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.6302083333333335,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 44,
+          "rate": 0.11458333333333333,
+          "trials": 384,
+          "wilson95": [
+            0.08647201574857696,
+            0.1503295349319687
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "1": {
+        "detection": {
+          "count": 224,
+          "rate": 0.5833333333333334,
+          "trials": 384,
+          "wilson95": [
+            0.5334357779548474,
+            0.6315801029790887
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 3,
+          "rate": 0.0078125,
+          "trials": 384,
+          "wilson95": [
+            0.0026604410407413143,
+            0.022714512193198817
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.7734375,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 226,
+          "rate": 0.5885416666666666,
+          "trials": 384,
+          "wilson95": [
+            0.5386820527920524,
+            0.6366473207002545
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "2": {
+        "detection": {
+          "count": 354,
+          "rate": 0.921875,
+          "trials": 384,
+          "wilson95": [
+            0.8906629041771005,
+            0.9447299930509508
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 3,
+          "rate": 0.0078125,
+          "trials": 384,
+          "wilson95": [
+            0.0026604410407413143,
+            0.022714512193198817
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 3.015625,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 354,
+          "rate": 0.921875,
+          "trials": 384,
+          "wilson95": [
+            0.8906629041771005,
+            0.9447299930509508
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "3": {
+        "detection": {
+          "count": 381,
+          "rate": 0.9921875,
+          "trials": 384,
+          "wilson95": [
+            0.9772854878068011,
+            0.9973395589592586
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 3,
+          "rate": 0.0078125,
+          "trials": 384,
+          "wilson95": [
+            0.0026604410407413143,
+            0.022714512193198817
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 3.0859375,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 381,
+          "rate": 0.9921875,
+          "trials": 384,
+          "wilson95": [
+            0.9772854878068011,
+            0.9973395589592586
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      }
+    },
+    "noise_aware_margin_0.5_screened": {
+      "0": {
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 8,
+          "rate": 0.020833333333333332,
+          "trials": 384,
+          "wilson95": [
+            0.010593552490377625,
+            0.040565132139490014
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.6744791666666665,
+        "mean_screen_noise_sigma": 0.09326255427662346
+      },
+      "0.25": {
+        "detection": {
+          "count": 3,
+          "rate": 0.0078125,
+          "trials": 384,
+          "wilson95": [
+            0.0026604410407413143,
+            0.022714512193198817
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 5,
+          "rate": 0.013020833333333334,
+          "trials": 384,
+          "wilson95": [
+            0.005574200232819548,
+            0.030114245559491583
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.53125,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 18,
+          "rate": 0.046875,
+          "trials": 384,
+          "wilson95": [
+            0.029853471099562566,
+            0.0728726763221601
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "0.5": {
+        "detection": {
+          "count": 50,
+          "rate": 0.13020833333333334,
+          "trials": 384,
+          "wilson95": [
+            0.1001788047502735,
+            0.16756322360538523
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.6302083333333335,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 71,
+          "rate": 0.18489583333333334,
+          "trials": 384,
+          "wilson95": [
+            0.14925509119052877,
+            0.22677860902802555
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "1": {
+        "detection": {
+          "count": 241,
+          "rate": 0.6276041666666666,
+          "trials": 384,
+          "wilson95": [
+            0.5782102590733782,
+            0.6744703086067114
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 2.7734375,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 244,
+          "rate": 0.6354166666666666,
+          "trials": 384,
+          "wilson95": [
+            0.5861551761431992,
+            0.6819956303744469
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "2": {
+        "detection": {
+          "count": 354,
+          "rate": 0.921875,
+          "trials": 384,
+          "wilson95": [
+            0.8906629041771005,
+            0.9447299930509508
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 4,
+          "rate": 0.010416666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.004058086614871649,
+            0.02647361289825398
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 3.015625,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 354,
+          "rate": 0.921875,
+          "trials": 384,
+          "wilson95": [
+            0.8906629041771005,
+            0.9447299930509508
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "3": {
+        "detection": {
+          "count": 381,
+          "rate": 0.9921875,
+          "trials": 384,
+          "wilson95": [
+            0.9772854878068011,
+            0.9973395589592586
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 3,
+          "rate": 0.0078125,
+          "trials": 384,
+          "wilson95": [
+            0.0026604410407413143,
+            0.022714512193198817
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 3.0859375,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 381,
+          "rate": 0.9921875,
+          "trials": 384,
+          "wilson95": [
+            0.9772854878068011,
+            0.9973395589592586
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      }
+    },
+    "noise_aware_margin_2.0_family": {
+      "0": {
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 0.5,
+        "mean_screen_noise_sigma": 0.09326255427662346
+      },
+      "0.25": {
+        "detection": {
+          "count": 1,
+          "rate": 0.0026041666666666665,
+          "trials": 384,
+          "wilson95": [
+            0.0004598473634967919,
+            0.014601613312072336
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 0.4817708333333333,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 1,
+          "rate": 0.0026041666666666665,
+          "trials": 384,
+          "wilson95": [
+            0.0004598473634967919,
+            0.014601613312072336
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "0.5": {
+        "detection": {
+          "count": 8,
+          "rate": 0.020833333333333332,
+          "trials": 384,
+          "wilson95": [
+            0.010593552490377625,
+            0.040565132139490014
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 0.5286458333333334,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 15,
+          "rate": 0.0390625,
+          "trials": 384,
+          "wilson95": [
+            0.023812988124260262,
+            0.06344292045990589
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "1": {
+        "detection": {
+          "count": 77,
+          "rate": 0.20052083333333334,
+          "trials": 384,
+          "wilson95": [
+            0.16352904204500002,
+            0.24344513584866728
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 0.625,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 79,
+          "rate": 0.20572916666666666,
+          "trials": 384,
+          "wilson95": [
+            0.16830809491973908,
+            0.2489795755322992
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "2": {
+        "detection": {
+          "count": 205,
+          "rate": 0.5338541666666666,
+          "trials": 384,
+          "wilson95": [
+            0.48387069679989647,
+            0.583167004829515
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 0.9192708333333334,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 205,
+          "rate": 0.5338541666666666,
+          "trials": 384,
+          "wilson95": [
+            0.48387069679989647,
+            0.583167004829515
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      },
+      "3": {
+        "detection": {
+          "count": 325,
+          "rate": 0.8463541666666666,
+          "trials": 384,
+          "wilson95": [
+            0.806871364306332,
+            0.8789758908253397
+          ]
+        },
+        "false_verification": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "family_wise_false_confirmation": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        },
+        "mean_confirm_noise_sigma": 0.048932482098939446,
+        "mean_confirmations_run": 1.2317708333333333,
+        "mean_screen_noise_sigma": 0.09326255427662346,
+        "planted_confirmed": {
+          "count": 325,
+          "rate": 0.8463541666666666,
+          "trials": 384,
+          "wilson95": [
+            0.806871364306332,
+            0.8789758908253397
+          ]
+        },
+        "worsening_promotions": {
+          "count": 0,
+          "rate": 0.0,
+          "trials": 384,
+          "wilson95": [
+            0.0,
+            0.009904714396383624
+          ]
+        }
+      }
+    },
+    "raw_autoscientists_screen": {
+      "0": {
+        "mean_promotions": 3.0182291666666665,
+        "trials_with_false_promotion": {
+          "count": 284,
+          "rate": 0.7395833333333334,
+          "trials": 384,
+          "wilson95": [
+            0.6934693020657372,
+            0.780951355619329
+          ]
+        }
+      },
+      "0.25": {
+        "mean_promotions": 2.8828125,
+        "planted_promoted": {
+          "count": 185,
+          "rate": 0.4817708333333333,
+          "trials": 384,
+          "wilson95": [
+            0.4322229269812686,
+            0.5316798490644329
+          ]
+        },
+        "trials_with_false_promotion": {
+          "count": 268,
+          "rate": 0.6979166666666666,
+          "trials": 384,
+          "wilson95": [
+            0.6502174936212383,
+            0.7416952235968598
+          ]
+        }
+      },
+      "0.5": {
+        "mean_promotions": 2.9557291666666665,
+        "planted_promoted": {
+          "count": 213,
+          "rate": 0.5546875,
+          "trials": 384,
+          "wilson95": [
+            0.5046801938623295,
+            0.6036114780005659
+          ]
+        },
+        "trials_with_false_promotion": {
+          "count": 268,
+          "rate": 0.6979166666666666,
+          "trials": 384,
+          "wilson95": [
+            0.6502174936212383,
+            0.7416952235968598
+          ]
+        }
+      },
+      "1": {
+        "mean_promotions": 3.0416666666666665,
+        "planted_promoted": {
+          "count": 246,
+          "rate": 0.640625,
+          "trials": 384,
+          "wilson95": [
+            0.5914592593670358,
+            0.6870050397089813
+          ]
+        },
+        "trials_with_false_promotion": {
+          "count": 268,
+          "rate": 0.6979166666666666,
+          "trials": 384,
+          "wilson95": [
+            0.6502174936212383,
+            0.7416952235968598
+          ]
+        }
+      },
+      "2": {
+        "mean_promotions": 3.2786458333333335,
+        "planted_promoted": {
+          "count": 337,
+          "rate": 0.8776041666666666,
+          "trials": 384,
+          "wilson95": [
+            0.8410326587205206,
+            0.9066955517613771
+          ]
+        },
+        "trials_with_false_promotion": {
+          "count": 268,
+          "rate": 0.6979166666666666,
+          "trials": 384,
+          "wilson95": [
+            0.6502174936212383,
+            0.7416952235968598
+          ]
+        }
+      },
+      "3": {
+        "mean_promotions": 3.3802083333333335,
+        "planted_promoted": {
+          "count": 376,
+          "rate": 0.9791666666666666,
+          "trials": 384,
+          "wilson95": [
+            0.9594348678605099,
+            0.9894064475096224
+          ]
+        },
+        "trials_with_false_promotion": {
+          "count": 268,
+          "rate": 0.6979166666666666,
+          "trials": 384,
+          "wilson95": [
+            0.6502174936212383,
+            0.7416952235968598
+          ]
+        }
+      }
+    }
+  },
+  "screen_noise_sigma": 0.1,
+  "simulated": true,
+  "stage_seed_counts": [
+    2,
+    16,
+    16
+  ],
+  "t0_loop_hash": "b857e89b47c4d273f83cf621260ab3c3227e9431dd4a3f50183fabf184bbab66",
+  "worsening_sigmas": 1.0
+}

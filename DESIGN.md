@@ -22,7 +22,9 @@ Campaign records, artifact storage, and spend records remain planned extensions.
 The [loop interface and T0/T1 adapters](docs/LOOPS.md) are implemented.
 T1 job generation and CPU stand-ins are checked; native training remains unverified.
 The [local and container executors](docs/EXECUTORS.md) are implemented.
-The mock executor, GCP stub, decider, application spend gate, and plugins remain planned.
+The [decider](docs/DECIDER.md) has frozen protocols, staged evidence, two screen policies, and a trusted final-evaluation guard.
+Both policies are checked on simulated T0 families.
+The mock executor, GCP stub, application spend gate, and plugins remain planned.
 The [model configuration](config/models.toml) selects `gpt-6-astra` as proposer and `gpt-6.1-sol` through Codex CLI as implementer.
 The [billing configuration](config/billing.toml) records a $10 monthly OpenAI limit and $10 of RunPod credit.
 RunPod auto-pay is off.
@@ -254,6 +256,11 @@ Those operations do not replace the experiment contract or create a new training
 
 ## Decider
 
+The first implementation is available in `openloop.decider`.
+The [decider guide](docs/DECIDER.md) gives the rules, statistical assumptions, and [simulated T0 power and error evidence](docs/decider-t0.json).
+The coordinator is in memory.
+Durable campaign records and restricted held-out storage remain planned.
+
 The campaign freezes the decision policy before comparison starts.
 The policy declares sample counts, seed schedules, minimum effects, uncertainty calculations, and multiple-comparison rules.
 The decider is a pure function of this policy and validated measurements.
@@ -330,8 +337,11 @@ T1 must complete the full recorded sequence before any verified gain claim.
 Mock scale checks must preserve budgets and prevent duplicate admission.
 Restricted execution checks must establish the N8 boundary before autonomous code runs.
 
-These are planned checks.
-The current setup reports provide starting evidence, not completion of these checks.
+Stable hashes, cache references, replication, contract violations, and ledger consistency after SIGKILL are checked.
+The [ledger guide](docs/LEDGER.md#test-coverage) links the tests and defines their limits.
+T0 statistical decisions are checked for power and error rates on [simulated families](docs/DECIDER.md#t0-validation).
+The complete T1 verification sequence, mock scale checks, and broader restricted-execution validation remain planned checks.
+Setup reports alone do not complete those checks.
 
 [ste100]: https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf
 [tinker-env]: https://github.com/thinking-machines-lab/tinker-cookbook/blob/main/tinker_cookbook/rl/types.py
