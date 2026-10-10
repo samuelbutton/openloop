@@ -75,6 +75,11 @@ MLX training script to exact token budgets at two fidelities (8m and 21m tokens)
 Candidate settings, frozen evaluators, and work limits are checked before publication.
 The [loop guide](docs/LOOPS.md) includes an offline example and native-worker requirements.
 
+The [public M4 Pro reproduction](research/reproductions/m4-pro-2026-10-10/README.md)
+reached 1.410165 val_bpb with the unmodified published winner, against its 1.429396
+reference. This uses the original ClimbMix evaluator; the frozen FineWeb-Edu T1
+baseline remains separate.
+
 ## Executors
 
 [`openloop.executors`](docs/EXECUTORS.md) provides local processes and committed Git

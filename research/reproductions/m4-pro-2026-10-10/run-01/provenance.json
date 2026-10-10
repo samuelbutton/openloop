@@ -1,0 +1,100 @@
+{
+  "repository": "https://github.com/elementalcollision/autoresearch",
+  "revision": "1d8377683d9a5b1af14f5933e6f5130c54e94460",
+  "source_sha256": {
+    "train_mlx.py": "f53ec5cfee3b768627b02387645f5dca3ba2fec51ae24bf5521854bcba821d52",
+    "prepare.py": "f74ae808d992db1ea86a11c374ae7bdf074ee422cca5510e69ccb2628146f9ce",
+    "backends/muon_mlx.py": "a941fdb060dac1d9a76f5c19bd72b4996e67e3f387a8ee35fc29b173e8d54d38",
+    "backends/__init__.py": "8da786fe82e8ece027fbf4a49dae761bb98fe20079f511f3a38c5ba8e9ed28ba"
+  },
+  "runtime": {
+    "python": "3.12.13",
+    "packages": {
+      "mlx": "0.31.0",
+      "mlx-metal": "0.31.0",
+      "numpy": "2.4.2",
+      "pyarrow": "23.0.1",
+      "regex": "2026.2.28",
+      "requests": "2.32.5",
+      "rustbpe": "0.1.0",
+      "tiktoken": "0.12.0"
+    }
+  },
+  "macos": "26.6.2",
+  "chip": "Apple M4 Pro",
+  "gpu_cores": 20,
+  "ram_bytes": 25769803776,
+  "cached_data": [
+    {
+      "path": "data/shard_00000.parquet",
+      "size_bytes": 92291918,
+      "sha256": "054ddbd98abf30d773c54de578fc9d579bafeb6c14e04e97bd36aa90e825bf9b"
+    },
+    {
+      "path": "data/shard_00001.parquet",
+      "size_bytes": 92124317,
+      "sha256": "d4cfe1de19f4fd976022a9047458655968bc5583582ec5fa714801ec2be2c93c"
+    },
+    {
+      "path": "data/shard_00002.parquet",
+      "size_bytes": 91803619,
+      "sha256": "5e80d7596d53be648d841ea5811082747281c39f6851e10dd90375a84bc509a7"
+    },
+    {
+      "path": "data/shard_00003.parquet",
+      "size_bytes": 91793972,
+      "sha256": "b349c85d4b993d98e2328833ecfd3734692e0395a592d89858bae34a4ba73c59"
+    },
+    {
+      "path": "data/shard_00004.parquet",
+      "size_bytes": 91428652,
+      "sha256": "87dae96fe1a6116c54c7873aadb81832178a36755991befd1b3b641c76244474"
+    },
+    {
+      "path": "data/shard_00005.parquet",
+      "size_bytes": 91845922,
+      "sha256": "3d9aebf138ef69cff2585a686d7f21585b7ffc0de4655f8e7723590418583bd6"
+    },
+    {
+      "path": "data/shard_00006.parquet",
+      "size_bytes": 91455616,
+      "sha256": "6a3f2afde8f1a39f9283ea9d9e9ee6431634d6881b63798176bf64efc3f33576"
+    },
+    {
+      "path": "data/shard_00007.parquet",
+      "size_bytes": 91202032,
+      "sha256": "731eea337d941e5b18a9a4e2bbe73a517dac45d91bb93ae2e69346c68c5f37f6"
+    },
+    {
+      "path": "data/shard_00008.parquet",
+      "size_bytes": 91155507,
+      "sha256": "e78379132451838afabed9034b5483a2f3bc5a422bed8b55b99f2bbb9a128755"
+    },
+    {
+      "path": "data/shard_00009.parquet",
+      "size_bytes": 92072356,
+      "sha256": "f22410fe8f13b6976a2860a8a82ee71e838f4ee9b605d61584aaa963f966e120"
+    },
+    {
+      "path": "data/shard_06542.parquet",
+      "size_bytes": 91699537,
+      "sha256": "769fe59d108dfd2cfa186c63173b83fbfb90a7adb3519519ba6eaa6ca9889f94"
+    },
+    {
+      "path": "tokenizer/token_bytes.npy",
+      "size_bytes": 32896,
+      "sha256": "23f765b3bcef1c3808370ede6d9e5161cbaf2e2c86f2e8a947efb08fa3168db8"
+    },
+    {
+      "path": "tokenizer/tokenizer.pkl",
+      "size_bytes": 94590,
+      "sha256": "888c9fa865c72c25f9c5e9467136a9cc8655253db459fb97481deb326681c629"
+    }
+  ],
+  "reference_bpb": 1.429396,
+  "reference_gpu_cores": 16,
+  "evaluation_tokens": 5242880,
+  "dataset": "karpathy/climbmix-400b-shuffle",
+  "seed": 42,
+  "runtime_note": "Reference uv.lock lacks MLX; observed versions are recorded explicitly."
+}

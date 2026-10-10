@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-10",
+  "wiki_revision": "3337ce96ae8c5410fa79088a4273804d7f33bdd8",
+  "wiki_page": "Experiment-Results-Mar-14-2026-M4-Pro.md",
+  "wiki_page_sha256": "c25ecb0521459beb1095a1b74ae88db5622ed8680edfc9110676ffe0275e8061",
+  "reference_val_bpb": 1.429396,
+  "reference_steps": 751,
+  "reference_training_seconds": 300,
+  "reference_gpu_cores": 16,
+  "debug_absolute_bpb_gap": 0.05,
+  "debug_threshold_set_before_result": true,
+  "config": {
+    "DEPTH": 6,
+    "ASPECT_RATIO": 64,
+    "HEAD_DIM": 128,
+    "MLP_RATIO": 1.5,
+    "TOTAL_BATCH_SIZE": 8192,
+    "DEVICE_BATCH_SIZE": 4,
+    "WARMDOWN_RATIO": 0.7,
+    "seed": 42
+  },
+  "evaluation_tokens": 5242880,
+  "sequence_length": 2048,
+  "dataset": "karpathy/climbmix-400b-shuffle",
+  "validation_shard": "shard_06542.parquet"
+}

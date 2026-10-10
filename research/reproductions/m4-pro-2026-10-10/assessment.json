@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-10",
+  "run": "run-01",
+  "reference_val_bpb": 1.429396,
+  "observed_val_bpb": 1.410165,
+  "delta_bpb": -0.01923100000000022,
+  "absolute_gap_bpb": 0.01923100000000022,
+  "debug_threshold_bpb": 0.05,
+  "within_debug_tolerance": true,
+  "claim": "approximate public-source sanity check; not a statistical improvement",
+  "training_steps": 824,
+  "excluded_startup_steps": 11,
+  "timed_training_tokens": 6660096,
+  "timed_tokens_per_second": 22185.529646902065,
+  "throughput_note": "Approximate: source reports training seconds rounded to 0.1 s. Excludes first 11 updates, setup and validation.",
+  "source_unchanged_after_run": true,
+  "cached_data_unchanged_after_run": true,
+  "logs_sha256_verified": true,
+  "source_sha256_after_run": {
+    "train_mlx.py": "f53ec5cfee3b768627b02387645f5dca3ba2fec51ae24bf5521854bcba821d52",
+    "prepare.py": "f74ae808d992db1ea86a11c374ae7bdf074ee422cca5510e69ccb2628146f9ce",
+    "backends/muon_mlx.py": "a941fdb060dac1d9a76f5c19bd72b4996e67e3f387a8ee35fc29b173e8d54d38",
+    "backends/__init__.py": "8da786fe82e8ece027fbf4a49dae761bb98fe20079f511f3a38c5ba8e9ed28ba"
+  },
+  "limitations": [
+    "20 GPU cores here versus 16 in the reference",
+    "Reference runtime versions and input-byte hashes were not published",
+    "One fixed-seed sample; no noise floor or confidence interval",
+    "ClimbMix validation, not the frozen FineWeb-Edu T1 validation split"
+  ]
+}

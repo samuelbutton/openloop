@@ -1,0 +1,13 @@
+{
+  "val_bpb": 1.410165,
+  "training_seconds": 300.2,
+  "total_seconds": 377.4,
+  "peak_vram_mb": 4510.8,
+  "mfu_percent": 14.88,
+  "total_tokens_M": 6.8,
+  "num_steps": 824,
+  "num_params_M": 21.9,
+  "depth": 6,
+  "backend": "mlx",
+  "chip": "Apple M4 Pro"
+}
