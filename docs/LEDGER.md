@@ -212,6 +212,28 @@ with Ledger("ledger.sqlite3") as ledger:
     assert run.id in {ancestor.id for ancestor in ledger.lineage(report.repeat_id)}
 ```
 
+## Test coverage
+
+Confirmed on October 10, 2026.
+The first implementation checks are covered by these tests:
+
+| Requirement | Evidence |
+| --- | --- |
+| Hash stability | [Golden identity digests](../tests/ledger/test_identity.py) and [property tests](../tests/ledger/test_identity_properties.py) check canonical ordering, immutable snapshots, reconstruction, and both hashes. |
+| Cache hits | [Ledger tests](../tests/ledger/test_store.py) and [loop tests](../tests/loops/test_env.py) check shared attempt references, preserved provenance, no extra samples or charged work, request replay, and explicit replication. |
+| Contract violations | [Ledger tests](../tests/ledger/test_store.py) and [loop tests](../tests/loops/test_env.py) reject invalid transitions, exceeded budgets, concurrent steps, frozen-input drift, and invalid output. Rejected work cannot publish a successful result. |
+| SIGKILL during a transaction | [Store crash tests](../tests/ledger/test_store.py) kill the writer before submission or completion commits. They check rollback and safe subsequent writes. |
+| SIGKILL during a live run | [Coordinator crash tests](../tests/loops/test_crash_recovery.py) kill a real process during execution and evaluation. They check committed evidence, SQLite integrity, foreign keys, pending references, reconciliation, retry lineage, and successful-result reuse. |
+
+The live-run tests wait for a committed stage before sending SIGKILL.
+They use temporary ledgers and CPU-only T0 jobs.
+They do not use production data, GPU training, or paid services.
+A restarted coordinator sees the interrupted attempt as `running`, with no result.
+It explicitly records failure before it retries the same inputs.
+The retry creates a new attempt and retains the failed attempt.
+Database consistency is checked before and after recovery.
+Automatic reconciliation, termination of orphan worker processes, and recovery from a host power loss are not established by these tests.
+
 ## Boundaries
 
 Only trusted orchestration and evaluator code may publish results.
