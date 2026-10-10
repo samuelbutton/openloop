@@ -1,0 +1,24 @@
+{
+  "job_id": "78c6ec79a28443c2aeb73473e445e63e",
+  "input_hash": "4f01fa95ce06d0b0f08e7209eff918e9e3cb53e008213458aab97a239af5b25e",
+  "state": "succeeded",
+  "exit_code": 0,
+  "submitted_at": "2026-10-10T20:35:20.672067+00:00",
+  "started_at": "2026-10-10T20:35:20.672704+00:00",
+  "finished_at": "2026-10-10T20:41:38.523584+00:00",
+  "elapsed_seconds": 377.8469129172154,
+  "peak_rss_bytes": 159465472,
+  "error": null,
+  "artifacts": [
+    {
+      "path": "jobs/78c6ec79a28443c2aeb73473e445e63e/stdout",
+      "sha256": "706445767ba1947cf350109cbacb616ddc032304ca3eb7f0b32db48fe1b9fdd6",
+      "size_bytes": 102615
+    },
+    {
+      "path": "jobs/78c6ec79a28443c2aeb73473e445e63e/stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    }
+  ]
+}
