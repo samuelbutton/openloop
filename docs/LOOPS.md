@@ -271,6 +271,10 @@ The logs stay in the root directory of the caller's executor.
 Artifact storage does not exist yet, so the caller must retain that directory for as long as it needs the logs to match their recorded digests.
 The attempt record has no field for executor identity, such as the executor kind, its version, or its configuration.
 The ledger stores only the job's result, so this identity remains unrecorded until the schema has such a field.
-Native training, measured throughput, fidelity rank correlation, and the noise floor remain unverified.
+Native baseline training completed at both fidelities; the [pilot receipts](../research/s1/README.md) record scores and throughput.
+Fidelity rank correlation and the noise floor remain unverified.
+The [S1 part 1 plan](../research/s1/README.md) is prepared and passed read-only preflight.
+The owner stopped the approved local batch after two successful pilot runs.
+The noise and correlation measurements remain incomplete.
 The [executors and shared GPU lane](EXECUTORS.md) are implemented and checked with CPU jobs.
 Statistical decisions and held-out release remain separate tasks.

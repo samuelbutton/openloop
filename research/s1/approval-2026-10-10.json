@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-10-10T23:34:40.552398+00:00",
+  "source": "explicit user reply in this chat",
+  "reply": "Approve the 70-run local study",
+  "plan_hash": "642d3befd545b3723bcc580f9f47260f6259eb52148bb5aec0f81e2bc99983ea",
+  "training_runs": 70,
+  "training_token_cap": 1027604480,
+  "wall_limit_seconds": 43200,
+  "output": "research/s1/run-2026-10-10",
+  "scope": "local M4 Pro GPU and new isolated study ledger; no paid API or cloud services"
+}

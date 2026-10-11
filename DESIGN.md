@@ -20,7 +20,8 @@ Experiment inputs declare whether results are deterministic or noisy.
 The [ledger guide](docs/LEDGER.md) describes its API and schema.
 Campaign records, artifact storage, and spend records remain planned extensions.
 The [loop interface and T0/T1 adapters](docs/LOOPS.md) are implemented.
-T1 job generation and CPU stand-ins are checked; native training remains unverified.
+T1 job generation and CPU stand-ins are checked.
+The [native S1 pilots](research/s1/README.md) completed at both fidelities; noise and fidelity rank correlation remain unverified.
 The [local and container executors](docs/EXECUTORS.md) are implemented.
 The [decider](docs/DECIDER.md) has frozen protocols, staged evidence, two screen policies, and a trusted final-evaluation guard.
 Both policies are checked on simulated T0 families.

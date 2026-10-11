@@ -1,1 +1,1 @@
-"""Simulated validation studies. Studies use the core API and never extend it."""
+"""Research study protocols and analysis. Importing starts no experiments."""

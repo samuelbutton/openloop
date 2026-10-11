@@ -1,0 +1,10 @@
+{
+  "observed_at": "2026-10-10T23:48:13.085287+00:00",
+  "read_only_database_check": true,
+  "attempt_status_counts": {
+    "failed": 1,
+    "succeeded": 2
+  },
+  "quick_check": "ok",
+  "foreign_key_violation_count": 0
+}
