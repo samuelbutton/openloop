@@ -1,0 +1,193 @@
+{
+  "spec": {
+    "name": "t4-hpob",
+    "source_hash": "c5e456c1ac187e9253d8d94dd83e3814356562a636ae18f722e87ed9eabebc81",
+    "dependencies_hash": "529203e94b796c9d1be6c939be252728a71eb561fe7406a4b39da87852da8ef4",
+    "data_hash": "8ef55794a031b46d80a28697275b7f8b5eacf57dbdaedde5e64b09a7b85c5424",
+    "evaluator_hash": "33add9f86e0e05cbcdd431bd6146532cdd8ee4eade70c39371bd6153fd784d9d",
+    "adapter_hash": "33add9f86e0e05cbcdd431bd6146532cdd8ee4eade70c39371bd6153fd784d9d",
+    "budget_unit": "lookups",
+    "reproducibility": "deterministic",
+    "fidelities": [
+      {
+        "name": "lookup",
+        "amount": 1
+      }
+    ],
+    "mutable_keys": [
+      "configuration_index"
+    ],
+    "metric_name": "validation_score",
+    "metric_unit": "normalized response",
+    "direction": "maximize",
+    "tokenizer_hash": null,
+    "execution": {
+      "device": "cpu",
+      "recorded_benchmark": true,
+      "task": {
+        "artifact_sha256": "e06287807cc782f1b758938d11dcbb754c7363bea6a5f028538bb2b1096a3e75",
+        "meta_split": "validation",
+        "search_space": "4796",
+        "dataset": "31",
+        "normalization": "(y - task_min) / (task_max - task_min)"
+      }
+    }
+  },
+  "environment": {
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit"
+  },
+  "candidate_count": 299,
+  "queries": [
+    {
+      "fidelity": "lookup",
+      "seed": 0,
+      "run": {
+        "id": "cb17683a4883451299ad458a481fd2c2",
+        "attempt_id": "9a48f749c7754a03b3b8b2f80e995a6e",
+        "inputs": {
+          "source_hash": "c5e456c1ac187e9253d8d94dd83e3814356562a636ae18f722e87ed9eabebc81",
+          "dependencies_hash": "529203e94b796c9d1be6c939be252728a71eb561fe7406a4b39da87852da8ef4",
+          "data_hash": "8ef55794a031b46d80a28697275b7f8b5eacf57dbdaedde5e64b09a7b85c5424",
+          "environment_hash": "5d03420ce47012c0cbf7c06ce3f38b989449ee8011dcec3f589fecdfc57ae36c",
+          "evaluator_hash": "33add9f86e0e05cbcdd431bd6146532cdd8ee4eade70c39371bd6153fd784d9d",
+          "loop_hash": "82d415007f38b9ce1153fc16fe4dca41b6856fd032a82e517e95da2b4d91fd33",
+          "seed": 0,
+          "fidelity": "lookup",
+          "budget_unit": "lookups",
+          "budget_amount": 1,
+          "reproducibility": "deterministic",
+          "config": {
+            "configuration_index": 0
+          },
+          "execution": {
+            "device": "cpu",
+            "recorded_benchmark": true,
+            "task": {
+              "artifact_sha256": "e06287807cc782f1b758938d11dcbb754c7363bea6a5f028538bb2b1096a3e75",
+              "dataset": "31",
+              "meta_split": "validation",
+              "normalization": "(y - task_min) / (task_max - task_min)",
+              "search_space": "4796"
+            }
+          },
+          "tokenizer_hash": null,
+          "phase": "confirm"
+        },
+        "hypothesis": "",
+        "parents": [],
+        "purpose": "run",
+        "retry_of": null,
+        "created_at": "2026-10-12T23:05:45.157928+00:00",
+        "reused_from": null,
+        "status": "succeeded",
+        "preparations": [],
+        "events": [
+          {
+            "sequence": 1,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:05:45.157890+00:00",
+            "stage": "queue",
+            "payload": {}
+          },
+          {
+            "sequence": 2,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:05:45.158394+00:00",
+            "stage": "queue",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 9.295810014009476e-05
+            }
+          },
+          {
+            "sequence": 3,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:05:45.158433+00:00",
+            "stage": "execution",
+            "payload": {}
+          },
+          {
+            "sequence": 4,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:05:45.158765+00:00",
+            "stage": "execution",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 0.0001672091893851757
+            }
+          },
+          {
+            "sequence": 5,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:05:45.158779+00:00",
+            "stage": "evaluation",
+            "payload": {}
+          },
+          {
+            "sequence": 6,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:05:45.159102+00:00",
+            "stage": "evaluation",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 0.00017416616901755333
+            }
+          },
+          {
+            "sequence": 7,
+            "kind": "succeeded",
+            "timestamp": "2026-10-12T23:05:45.159125+00:00",
+            "stage": null,
+            "payload": {
+              "artifacts": {},
+              "metrics": {
+                "validation_score": {
+                  "direction": "maximize",
+                  "sample_count": 1,
+                  "split": "validation",
+                  "unit": "normalized response",
+                  "value": 0.2816901408450693
+                }
+              },
+              "observations": {
+                "lookup_seconds": {
+                  "direction": "minimize",
+                  "sample_count": 1,
+                  "split": "execution",
+                  "unit": "seconds",
+                  "value": 5.9625133872032166e-05
+                }
+              }
+            }
+          }
+        ],
+        "result": {
+          "metrics": {
+            "validation_score": {
+              "value": 0.2816901408450693,
+              "unit": "normalized response",
+              "direction": "maximize",
+              "split": "validation",
+              "sample_count": 1
+            }
+          },
+          "artifacts": {},
+          "observations": {
+            "lookup_seconds": {
+              "value": 5.9625133872032166e-05,
+              "unit": "seconds",
+              "direction": "minimize",
+              "split": "execution",
+              "sample_count": 1
+            }
+          }
+        }
+      },
+      "cache_hit": true
+    }
+  ],
+  "training_executed": false,
+  "test_scores_requested": false,
+  "elapsed_seconds": 1.101972000207752
+}

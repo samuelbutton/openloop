@@ -22,6 +22,9 @@ uv run pytest
 A change is complete only when all checks pass locally.
 CI runs the same commands.
 Commit `uv.lock` with every dependency change.
+Declare portable test imports in the `dev` dependency group.
+Do not rely on packages installed by platform-specific runtime dependencies.
+For example, the CPU recipe tests need NumPy on Linux as well as macOS.
 
 Open this repository folder in VS Code and install its recommended extensions.
 The workspace settings use Ruff from `.venv/bin/ruff`, installed by `uv sync --locked`,

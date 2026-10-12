@@ -1,0 +1,369 @@
+{
+  "spec": {
+    "name": "t4-nas201",
+    "source_hash": "f5b0ebcb62a01a60235cfaccb5c05c4ffc908480b39e782a5cd53ea92b67813c",
+    "dependencies_hash": "f350212898423dd1c10f895d6320687c3714013b35754c5054264d9a32802bf6",
+    "data_hash": "1f207d6118b04be48526fdbf1f1e63cbe893caccb9cb0d7fd3324d350e967703",
+    "evaluator_hash": "33add9f86e0e05cbcdd431bd6146532cdd8ee4eade70c39371bd6153fd784d9d",
+    "adapter_hash": "33add9f86e0e05cbcdd431bd6146532cdd8ee4eade70c39371bd6153fd784d9d",
+    "budget_unit": "epochs",
+    "reproducibility": "deterministic",
+    "fidelities": [
+      {
+        "name": "12",
+        "amount": 12
+      },
+      {
+        "name": "200",
+        "amount": 200
+      }
+    ],
+    "mutable_keys": [
+      "architecture_index"
+    ],
+    "metric_name": "validation_score",
+    "metric_unit": "percent",
+    "direction": "maximize",
+    "tokenizer_hash": null,
+    "execution": {
+      "device": "cpu",
+      "recorded_benchmark": true,
+      "task": {
+        "artifact_sha256": "2317a7dc911654322f4f932730a821cf38ecc5b5f1adde0aff26ff6b3f736666",
+        "dataset": "cifar10-valid",
+        "score_split": "x-valid",
+        "seed_selection": "exact recorded seed"
+      }
+    }
+  },
+  "environment": {
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit"
+  },
+  "candidate_count": 15625,
+  "queries": [
+    {
+      "fidelity": "12",
+      "seed": 111,
+      "run": {
+        "id": "796f9c43b8f743e99d5d2c7ff95a88d4",
+        "attempt_id": "e7db9cac512641f38b2f6b710ce2be15",
+        "inputs": {
+          "source_hash": "f5b0ebcb62a01a60235cfaccb5c05c4ffc908480b39e782a5cd53ea92b67813c",
+          "dependencies_hash": "f350212898423dd1c10f895d6320687c3714013b35754c5054264d9a32802bf6",
+          "data_hash": "1f207d6118b04be48526fdbf1f1e63cbe893caccb9cb0d7fd3324d350e967703",
+          "environment_hash": "5d03420ce47012c0cbf7c06ce3f38b989449ee8011dcec3f589fecdfc57ae36c",
+          "evaluator_hash": "33add9f86e0e05cbcdd431bd6146532cdd8ee4eade70c39371bd6153fd784d9d",
+          "loop_hash": "01ed5ad3c0066d8b9615c4c411563b3d66a3d48b0e43b12de63983ce7fb368c4",
+          "seed": 111,
+          "fidelity": "12",
+          "budget_unit": "epochs",
+          "budget_amount": 12,
+          "reproducibility": "deterministic",
+          "config": {
+            "architecture_index": 0
+          },
+          "execution": {
+            "device": "cpu",
+            "recorded_benchmark": true,
+            "task": {
+              "artifact_sha256": "2317a7dc911654322f4f932730a821cf38ecc5b5f1adde0aff26ff6b3f736666",
+              "dataset": "cifar10-valid",
+              "score_split": "x-valid",
+              "seed_selection": "exact recorded seed"
+            }
+          },
+          "tokenizer_hash": null,
+          "phase": "confirm"
+        },
+        "hypothesis": "",
+        "parents": [],
+        "purpose": "run",
+        "retry_of": null,
+        "created_at": "2026-10-12T23:08:40.168865+00:00",
+        "reused_from": null,
+        "status": "succeeded",
+        "preparations": [],
+        "events": [
+          {
+            "sequence": 1,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:08:40.168806+00:00",
+            "stage": "queue",
+            "payload": {}
+          },
+          {
+            "sequence": 2,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:08:40.169547+00:00",
+            "stage": "queue",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 7.058307528495789e-05
+            }
+          },
+          {
+            "sequence": 3,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:08:40.169568+00:00",
+            "stage": "execution",
+            "payload": {}
+          },
+          {
+            "sequence": 4,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:08:40.169896+00:00",
+            "stage": "execution",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 0.00015704194083809853
+            }
+          },
+          {
+            "sequence": 5,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:08:40.169907+00:00",
+            "stage": "evaluation",
+            "payload": {}
+          },
+          {
+            "sequence": 6,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:08:40.170308+00:00",
+            "stage": "evaluation",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 0.00022916728630661964
+            }
+          },
+          {
+            "sequence": 7,
+            "kind": "succeeded",
+            "timestamp": "2026-10-12T23:08:40.170331+00:00",
+            "stage": null,
+            "payload": {
+              "artifacts": {},
+              "metrics": {
+                "validation_score": {
+                  "direction": "maximize",
+                  "sample_count": 1,
+                  "split": "validation",
+                  "unit": "percent",
+                  "value": 64.01599998291016
+                }
+              },
+              "observations": {
+                "lookup_seconds": {
+                  "direction": "minimize",
+                  "sample_count": 1,
+                  "split": "execution",
+                  "unit": "seconds",
+                  "value": 5.916692316532135e-05
+                },
+                "recorded_training_seconds": {
+                  "direction": "minimize",
+                  "sample_count": 1,
+                  "split": "benchmark",
+                  "unit": "seconds",
+                  "value": 86.65311598777771
+                }
+              }
+            }
+          }
+        ],
+        "result": {
+          "metrics": {
+            "validation_score": {
+              "value": 64.01599998291016,
+              "unit": "percent",
+              "direction": "maximize",
+              "split": "validation",
+              "sample_count": 1
+            }
+          },
+          "artifacts": {},
+          "observations": {
+            "lookup_seconds": {
+              "value": 5.916692316532135e-05,
+              "unit": "seconds",
+              "direction": "minimize",
+              "split": "execution",
+              "sample_count": 1
+            },
+            "recorded_training_seconds": {
+              "value": 86.65311598777771,
+              "unit": "seconds",
+              "direction": "minimize",
+              "split": "benchmark",
+              "sample_count": 1
+            }
+          }
+        }
+      },
+      "cache_hit": true
+    },
+    {
+      "fidelity": "200",
+      "seed": 777,
+      "run": {
+        "id": "96fd7678c1564295a20b91ddce7cfa07",
+        "attempt_id": "399b9bd243af4c4d9c8ada29c6a65383",
+        "inputs": {
+          "source_hash": "f5b0ebcb62a01a60235cfaccb5c05c4ffc908480b39e782a5cd53ea92b67813c",
+          "dependencies_hash": "f350212898423dd1c10f895d6320687c3714013b35754c5054264d9a32802bf6",
+          "data_hash": "1f207d6118b04be48526fdbf1f1e63cbe893caccb9cb0d7fd3324d350e967703",
+          "environment_hash": "5d03420ce47012c0cbf7c06ce3f38b989449ee8011dcec3f589fecdfc57ae36c",
+          "evaluator_hash": "33add9f86e0e05cbcdd431bd6146532cdd8ee4eade70c39371bd6153fd784d9d",
+          "loop_hash": "01ed5ad3c0066d8b9615c4c411563b3d66a3d48b0e43b12de63983ce7fb368c4",
+          "seed": 777,
+          "fidelity": "200",
+          "budget_unit": "epochs",
+          "budget_amount": 200,
+          "reproducibility": "deterministic",
+          "config": {
+            "architecture_index": 0
+          },
+          "execution": {
+            "device": "cpu",
+            "recorded_benchmark": true,
+            "task": {
+              "artifact_sha256": "2317a7dc911654322f4f932730a821cf38ecc5b5f1adde0aff26ff6b3f736666",
+              "dataset": "cifar10-valid",
+              "score_split": "x-valid",
+              "seed_selection": "exact recorded seed"
+            }
+          },
+          "tokenizer_hash": null,
+          "phase": "confirm"
+        },
+        "hypothesis": "",
+        "parents": [],
+        "purpose": "run",
+        "retry_of": null,
+        "created_at": "2026-10-12T23:08:40.178013+00:00",
+        "reused_from": null,
+        "status": "succeeded",
+        "preparations": [],
+        "events": [
+          {
+            "sequence": 8,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:08:40.177994+00:00",
+            "stage": "queue",
+            "payload": {}
+          },
+          {
+            "sequence": 9,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:08:40.178524+00:00",
+            "stage": "queue",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 4.837522283196449e-05
+            }
+          },
+          {
+            "sequence": 10,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:08:40.178539+00:00",
+            "stage": "execution",
+            "payload": {}
+          },
+          {
+            "sequence": 11,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:08:40.178793+00:00",
+            "stage": "execution",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 0.0001189173199236393
+            }
+          },
+          {
+            "sequence": 12,
+            "kind": "stage_started",
+            "timestamp": "2026-10-12T23:08:40.178805+00:00",
+            "stage": "evaluation",
+            "payload": {}
+          },
+          {
+            "sequence": 13,
+            "kind": "stage_finished",
+            "timestamp": "2026-10-12T23:08:40.179039+00:00",
+            "stage": "evaluation",
+            "payload": {
+              "duration_clock": "monotonic",
+              "duration_seconds": 9.912531822919846e-05
+            }
+          },
+          {
+            "sequence": 14,
+            "kind": "succeeded",
+            "timestamp": "2026-10-12T23:08:40.179054+00:00",
+            "stage": null,
+            "payload": {
+              "artifacts": {},
+              "metrics": {
+                "validation_score": {
+                  "direction": "maximize",
+                  "sample_count": 1,
+                  "split": "validation",
+                  "unit": "percent",
+                  "value": 82.09199998291015
+                }
+              },
+              "observations": {
+                "lookup_seconds": {
+                  "direction": "minimize",
+                  "sample_count": 1,
+                  "split": "execution",
+                  "unit": "seconds",
+                  "value": 4.0458980947732925e-05
+                },
+                "recorded_training_seconds": {
+                  "direction": "minimize",
+                  "sample_count": 1,
+                  "split": "benchmark",
+                  "unit": "seconds",
+                  "value": 1444.2185997962952
+                }
+              }
+            }
+          }
+        ],
+        "result": {
+          "metrics": {
+            "validation_score": {
+              "value": 82.09199998291015,
+              "unit": "percent",
+              "direction": "maximize",
+              "split": "validation",
+              "sample_count": 1
+            }
+          },
+          "artifacts": {},
+          "observations": {
+            "lookup_seconds": {
+              "value": 4.0458980947732925e-05,
+              "unit": "seconds",
+              "direction": "minimize",
+              "split": "execution",
+              "sample_count": 1
+            },
+            "recorded_training_seconds": {
+              "value": 1444.2185997962952,
+              "unit": "seconds",
+              "direction": "minimize",
+              "split": "benchmark",
+              "sample_count": 1
+            }
+          }
+        }
+      },
+      "cache_hit": true
+    }
+  ],
+  "training_executed": false,
+  "test_scores_requested": false,
+  "elapsed_seconds": 174.07865304173902
+}
