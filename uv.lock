@@ -971,6 +971,7 @@ benchmarks = [
 ]
 dev = [
     { name = "hypothesis" },
+    { name = "numpy" },
     { name = "pre-commit" },
     { name = "pyright" },
     { name = "pytest" },
@@ -993,6 +994,7 @@ benchmarks = [
 ]
 dev = [
     { name = "hypothesis", specifier = ">=6.168,<7" },
+    { name = "numpy", specifier = ">=2,<3" },
     { name = "pre-commit", specifier = ">=4,<5" },
     { name = "pyright", specifier = ">=1.1.414,<2" },
     { name = "pytest", specifier = ">=8,<10" },
