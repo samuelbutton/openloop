@@ -49,6 +49,7 @@ from .models import (
     LoopSpec,
     RunContext,
 )
+from .recipe import RECIPE_HASHES, SHARED_TRAIN_SHA256, shared_training
 from .training import TrainingSetting, baseline_config, training_program
 
 UPSTREAM_REVISION = "766a25ff22afa799efd8d0aa450a4348e4749df2"
@@ -75,6 +76,7 @@ ADAPTER_FILES = (
     "t1_worker.py",
     "models.py",
     "files.py",
+    "recipe.py",
 )
 _POSITIVE_INTEGERS = (
     TrainingSetting.DEPTH,
@@ -97,7 +99,7 @@ _NONNEGATIVE_NUMBERS = (
 
 @dataclass(frozen=True)
 class TrainingSource:
-    """Complete trusted source snapshots. The loader checks the pinned upstream."""
+    """Trusted snapshots. Load the shared recipe, or request the legacy baseline."""
 
     train: str
     prepare: str
@@ -108,13 +110,24 @@ class TrainingSource:
             check_text(snapshot)
 
     @classmethod
-    def load(cls, repository: Path) -> TrainingSource:
+    def load(cls, repository: Path, *, shared_recipe: bool = True) -> TrainingSource:
         snapshots: list[str] = []
         for name, expected in UPSTREAM_HASHES.items():
             data = (repository / name).read_bytes()
             if hashlib.sha256(data).hexdigest() != expected:
                 raise ContractError(f"Pinned upstream source changed: {name}")
             snapshots.append(data.decode("utf-8"))
+        if shared_recipe:
+            directory = Path(__file__).parent / "recipes" / "m4_pro_v1"
+            recipe: list[str] = []
+            for name, expected in RECIPE_HASHES.items():
+                data = (directory / name).read_bytes()
+                if hashlib.sha256(data).hexdigest() != expected:
+                    raise ContractError(f"Frozen shared recipe changed: {name}")
+                recipe.append(data.decode("utf-8"))
+            snapshots[0] = shared_training(*recipe)
+            if hashlib.sha256(snapshots[0].encode()).hexdigest() != SHARED_TRAIN_SHA256:
+                raise ContractError("Shared recipe composition differs from its freeze")
         return cls(*snapshots)
 
     @property

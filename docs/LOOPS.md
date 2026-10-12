@@ -122,6 +122,11 @@ Real runs must hash their actual environment identity.
 
 `TrainingSource.load(repository)` verifies `train.py`, `prepare.py`, and `uv.lock` against the [recorded upstream pin](../research/autoresearch-mlx.md).
 The revision is `766a25ff22afa799efd8d0aa450a4348e4749df2`.
+It then selects the frozen [m4-pro-v1 shared recipe](../src/openloop/loops/recipes/m4_pro_v1/README.md).
+The shared training source comes from published commit `1d8377683d9a5b1af14f5933e6f5130c54e94460`.
+Its optimizer and source snapshots are checked by hash before composition.
+The original `prepare.py` and dependency lock remain the trusted inputs.
+Use `TrainingSource.load(repository, shared_recipe=False)` to select the legacy recipe.
 The adapter changes an in-memory AST copy.
 It does not change upstream files or frozen evidence.
 
@@ -132,10 +137,10 @@ The sequence length remains 2048.
 The final evaluation remains 1,572,864 validation tokens with batch size 256.
 The upstream evaluator retains its memory-bounded microbatches.
 
-| Fidelity | Training tokens | Updates at the default 65,536-token batch |
+| Fidelity | Training tokens | Updates at the shared 8,192-token batch |
 | --- | ---: | ---: |
-| `"8m"` | 8,388,608 | 128 |
-| `"21m"` | 20,971,520 | 320 |
+| `"8m"` | 8,388,608 | 1,024 |
+| `"21m"` | 20,971,520 | 2,560 |
 
 These budgets are initial design choices, not calibrated run times.
 Batch sizes must divide both fidelity budgets and gradient accumulation.
@@ -150,7 +155,8 @@ The earlier bring-up used upstream validation shard 6542.
 T1 uses the frozen validation membership and therefore requires a new baseline.
 It replaces the upstream document iterator with the frozen train and validation memberships.
 Packing and tokenization retain the upstream implementation.
-The adapter changes only constants, the seed, the token stop, the token-based progress and remaining-token expressions, the tokenizer path, and the time-budget message.
+The recipe composer fixes the published model and optimizer before candidate generation.
+The token adapter then changes only constants, the seed, the token stop, the token-based progress and remaining-token expressions, the tokenizer path, and the time-budget message.
 It removes the upstream evaluator import.
 It does not edit log strings.
 Raw shards contain documents from all splits.
@@ -244,7 +250,7 @@ They check both fidelities, exact token stops, token schedules, seed replacement
 They also check data memberships, tokenizer drift, dependency mismatches, and protected evaluation budgets.
 Property-based tests check the planted optimum and independence from simulated machine speed.
 
-A [golden test](../tests/loops/test_pinned_source.py) generates both fidelity programs from the real pinned source.
+A [golden test](../tests/loops/test_pinned_source.py) generates both legacy fidelity programs from the real pinned source.
 It uses the baseline configuration, seed 42, and tokenizer directory `/frozen/tokenizer`.
 It compiles them and compares their SHA-256 digests with pinned literals.
 It also checks the seed, the token stop, the token-based progress, the startup exclusion, and the absence of the evaluator.
@@ -253,28 +259,30 @@ It skips when `research/autoresearch-mlx` is absent or differs from the pin.
 The [compile-only report](loop-validation.json) records successful compilation of the pinned upstream source at both fidelities on October 9, 2026.
 Its installed runtime matched all 12 locked dependencies, including MLX 0.31.0.
 Neither check executed GPU training.
-Regenerate the report with this command.
+Generate a new shared-recipe report with this command.
 It compiles the programs and imports no MLX.
 
 ```sh
 PYTHONPATH=src research/autoresearch-mlx/.venv/bin/python -m openloop.loops.t1_report \
   --upstream research/autoresearch-mlx --corpus data/fineweb-edu \
   --tokenizer-dir ~/.cache/autoresearch/tokenizer --verify-runtime \
-  --output docs/loop-validation.json
+  --output /tmp/t1-shared-validation.json
 ```
 
 `--verify-runtime` checks installed versions with the worker's `verify_runtime`.
 Omit it outside the upstream runtime.
 The `adapter_hash` field changes whenever an adapter file changes, so regenerate the report after such a change.
+Add `--legacy-recipe` to check the old program hashes.
+The old report is historical evidence; do not overwrite it.
+The [shared freeze](../src/openloop/loops/recipes/m4_pro_v1/freeze.json) records the new source, programs, defaults, and input hashes.
 
 The logs stay in the root directory of the caller's executor.
 Artifact storage does not exist yet, so the caller must retain that directory for as long as it needs the logs to match their recorded digests.
 The attempt record has no field for executor identity, such as the executor kind, its version, or its configuration.
 The ledger stores only the job's result, so this identity remains unrecorded until the schema has such a field.
-Native baseline training completed at both fidelities; the [pilot receipts](../research/s1/README.md) record scores and throughput.
-Fidelity rank correlation and the noise floor remain unverified.
-The [S1 part 1 plan](../research/s1/README.md) is prepared and passed read-only preflight.
-The owner stopped the approved local batch after two successful pilot runs.
-The noise and correlation measurements remain incomplete.
+The [S1 part 1 study](../research/s1/README.md) completed 70 legacy-recipe runs on October 12, 2026 UTC.
+It measured separate fixed-seed and distinct-seed noise floors and a screen/full Spearman correlation of 0.60.
+These measurements apply to the legacy source and settings.
+The shared recipe passed compile and CPU checks; native training and recalibration remain pending.
 The [executors and shared GPU lane](EXECUTORS.md) are implemented and checked with CPU jobs.
 Statistical decisions and held-out release remain separate tasks.
