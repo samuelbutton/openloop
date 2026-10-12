@@ -29,7 +29,10 @@ Both programs compile; native performance and calibration of the port remain unv
 The [local and container executors](docs/EXECUTORS.md) are implemented.
 The [decider](docs/DECIDER.md) has frozen protocols, staged evidence, two screen policies, and a trusted final-evaluation guard.
 Both policies are checked on simulated T0 families.
-The mock executor, GCP stub, application spend gate, and plugins remain planned.
+The [allocation plugins](docs/ALLOCATORS.md) select eligible screen jobs within a supplied budget and free worker slots.
+They provide greedy, random, UCB1 bandit, successive halving, and a declared-grid Hyperband variant.
+Offline T0 and NAS-Bench-201 fixture checks are complete. S2 policy comparisons remain planned.
+The mock executor, GCP stub, application spend gate, and other plugins remain planned.
 The [model configuration](config/models.toml) selects `gpt-6-astra` as proposer and `gpt-6.1-sol` through Codex CLI as implementer.
 The [billing configuration](config/billing.toml) records a $10 monthly OpenAI limit and $10 of RunPod credit.
 RunPod auto-pay is off.
@@ -77,7 +80,7 @@ It does not require a message broker or a distributed database.
 | Plugin | Contract with the core | Needs |
 | --- | --- | --- |
 | Loop definitions | Supply a versioned loop specification, job construction, and trusted evaluation code. | N4, N9 |
-| Allocation policies | Rank eligible jobs within the remaining budget. Start with FIFO; add successive halving and expected-value policies later. | N3 |
+| Allocation policies | Select eligible screen jobs within the supplied budget and free slots. Greedy, random, UCB1 bandit, successive halving, and declared-grid Hyperband are implemented. | N3 |
 | Proposers | Produce hypothesis cards with evidence, predicted effects, and candidate requests. | N6 |
 | Implementers | Produce candidate snapshots inside the declared mutable surface. Record repair attempts separately. | N6, N8 |
 | Decision policies | Supply versioned thresholds and calculations through the decider contract. | N2 |

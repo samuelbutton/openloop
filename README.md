@@ -103,6 +103,14 @@ and false-confirmation rate under nulls for each decision rule on simulated trut
 uv run python -m openloop.studies.t0_decider --trials 384 --output docs/decider-t0.json
 ```
 
+## Allocation
+
+[`openloop.allocators`](docs/ALLOCATORS.md) selects screen jobs through one pure interface.
+It provides greedy, random, UCB1 bandit, successive halving, and a declared-grid Hyperband variant.
+Each batch respects the supplied work budget and free worker slots.
+The [guide](docs/ALLOCATORS.md) defines the policy choices and includes a CPU-only example.
+S2 policy comparisons and scale projections remain planned.
+
 ## Frozen training data
 
 The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,
