@@ -1,0 +1,226 @@
+{
+  "slot": "embedding_lr_half:rank:2:8m",
+  "run": {
+    "id": "565939ba19944fa58c01a3e86ccc35b0",
+    "attempt_id": "0b3c6dc4b1a3481698eafd0cbd58e749",
+    "inputs": {
+      "source_hash": "89ff663ca9b8ad37e160fc265e9dd301abf5d16050f8075f6012759fc37ad6cf",
+      "dependencies_hash": "c6f943a33baa356ccb1a726da99caba058be529abb7754b3a1ade2ce0c067c31",
+      "data_hash": "93ea20c138c41e1e463324917a295a2d41b2fd1e4a1d01f690c889ff9d9ccb9f",
+      "environment_hash": "dfccb6da96b967a55630c34777949bef9a12cf5a91983cf54e38f55daecbb4cc",
+      "evaluator_hash": "9fb99f86ad0a052053f011662d7815e7034ccf3d35d304a62f3322155cf0841c",
+      "loop_hash": "9cbf56d5e8c74126c9041cb64b8f2d34f08f7959923e96afb3be6215bcd4a013",
+      "seed": 1002,
+      "fidelity": "8m",
+      "budget_unit": "tokens",
+      "budget_amount": 8388608,
+      "reproducibility": "noisy",
+      "config": {
+        "ADAM_BETAS": [
+          0.8,
+          0.95
+        ],
+        "ASPECT_RATIO": 64,
+        "DEPTH": 4,
+        "DEVICE_BATCH_SIZE": 16,
+        "EMBEDDING_LR": 0.3,
+        "FINAL_LR_FRAC": 0.0,
+        "HEAD_DIM": 128,
+        "MATRIX_LR": 0.04,
+        "SCALAR_LR": 0.5,
+        "TOTAL_BATCH_SIZE": 65536,
+        "UNEMBEDDING_LR": 0.004,
+        "WARMDOWN_RATIO": 0.5,
+        "WARMUP_RATIO": 0.0,
+        "WEIGHT_DECAY": 0.2,
+        "WINDOW_PATTERN": "SSSL"
+      },
+      "execution": {
+        "backend": "mlx",
+        "cpu_limit_seconds": null,
+        "device": "gpu",
+        "evaluation_batch": 256,
+        "evaluation_tokens": 1572864,
+        "file_limit_bytes": null,
+        "memory_limit_bytes": 17179869184,
+        "queue_limit_seconds": null,
+        "sequence_length": 2048,
+        "wall_limit_seconds": 3600,
+        "worker_log_limit_bytes": 16777216
+      },
+      "tokenizer_hash": "ebb01045205e74c7b77b27ccd565c3e94327a8b00579e5d92649d8158dd65920",
+      "phase": "screen"
+    },
+    "hypothesis": "S1 calibration on validation only",
+    "parents": [],
+    "purpose": "replication",
+    "retry_of": null,
+    "created_at": "2026-10-12T02:17:02.460251+00:00",
+    "reused_from": null,
+    "status": "succeeded",
+    "preparations": [],
+    "events": [
+      {
+        "sequence": 302,
+        "kind": "stage_started",
+        "timestamp": "2026-10-12T02:17:02.460235+00:00",
+        "stage": "queue",
+        "payload": {}
+      },
+      {
+        "sequence": 303,
+        "kind": "stage_finished",
+        "timestamp": "2026-10-12T02:17:02.461022+00:00",
+        "stage": "queue",
+        "payload": {
+          "duration_clock": "monotonic",
+          "duration_seconds": 7.004104554653168e-05
+        }
+      },
+      {
+        "sequence": 304,
+        "kind": "stage_started",
+        "timestamp": "2026-10-12T02:17:02.461036+00:00",
+        "stage": "execution",
+        "payload": {}
+      },
+      {
+        "sequence": 305,
+        "kind": "stage_finished",
+        "timestamp": "2026-10-12T02:19:24.591462+00:00",
+        "stage": "execution",
+        "payload": {
+          "duration_clock": "monotonic",
+          "duration_seconds": 142.12856708373874
+        }
+      },
+      {
+        "sequence": 306,
+        "kind": "stage_started",
+        "timestamp": "2026-10-12T02:19:24.591493+00:00",
+        "stage": "evaluation",
+        "payload": {}
+      },
+      {
+        "sequence": 307,
+        "kind": "stage_finished",
+        "timestamp": "2026-10-12T02:19:24.592075+00:00",
+        "stage": "evaluation",
+        "payload": {
+          "duration_clock": "monotonic",
+          "duration_seconds": 0.0001420830376446247
+        }
+      },
+      {
+        "sequence": 308,
+        "kind": "succeeded",
+        "timestamp": "2026-10-12T02:19:24.592098+00:00",
+        "stage": null,
+        "payload": {
+          "artifacts": {
+            "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": "e1732eb003601156554fd892986e01af6116d4b706efd25692fb3f606e807938"
+          },
+          "metrics": {
+            "val_bpb": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "validation",
+              "unit": "BPB",
+              "value": 2.2184491757604423
+            }
+          },
+          "observations": {
+            "peak_rss_bytes": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "execution",
+              "unit": "bytes",
+              "value": 699301888.0
+            },
+            "process_seconds": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "execution",
+              "unit": "seconds",
+              "value": 142.11260474985465
+            },
+            "queued_seconds": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "execution",
+              "unit": "seconds",
+              "value": 0.00010112486779689789
+            },
+            "tokens_per_second": {
+              "direction": "maximize",
+              "sample_count": 1,
+              "split": "train",
+              "unit": "tokens/s",
+              "value": 62788.24848915367
+            },
+            "training_seconds": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "train",
+              "unit": "seconds",
+              "value": 133.60156083106995
+            }
+          }
+        }
+      }
+    ],
+    "result": {
+      "metrics": {
+        "val_bpb": {
+          "value": 2.2184491757604423,
+          "unit": "BPB",
+          "direction": "minimize",
+          "split": "validation",
+          "sample_count": 1
+        }
+      },
+      "artifacts": {
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "e1732eb003601156554fd892986e01af6116d4b706efd25692fb3f606e807938"
+      },
+      "observations": {
+        "peak_rss_bytes": {
+          "value": 699301888.0,
+          "unit": "bytes",
+          "direction": "minimize",
+          "split": "execution",
+          "sample_count": 1
+        },
+        "process_seconds": {
+          "value": 142.11260474985465,
+          "unit": "seconds",
+          "direction": "minimize",
+          "split": "execution",
+          "sample_count": 1
+        },
+        "queued_seconds": {
+          "value": 0.00010112486779689789,
+          "unit": "seconds",
+          "direction": "minimize",
+          "split": "execution",
+          "sample_count": 1
+        },
+        "tokens_per_second": {
+          "value": 62788.24848915367,
+          "unit": "tokens/s",
+          "direction": "maximize",
+          "split": "train",
+          "sample_count": 1
+        },
+        "training_seconds": {
+          "value": 133.60156083106995,
+          "unit": "seconds",
+          "direction": "minimize",
+          "split": "train",
+          "sample_count": 1
+        }
+      }
+    }
+  }
+}
