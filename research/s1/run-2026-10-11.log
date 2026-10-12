@@ -1,0 +1,140 @@
+S1 1/70: baseline:distinct_seed:0:8m
+val_bpb=2.133726
+S1 2/70: baseline:distinct_seed:0:21m
+val_bpb=1.727648
+S1 3/70: baseline:fixed_seed:3:21m
+val_bpb=1.780196
+S1 4/70: matrix_lr_double:rank:1:8m
+val_bpb=2.216280
+S1 5/70: weight_decay_zero:rank:0:21m
+val_bpb=1.872538
+S1 6/70: embedding_lr_double:rank:1:8m
+val_bpb=2.130845
+S1 7/70: baseline:distinct_seed:1:21m
+val_bpb=1.742237
+S1 8/70: embedding_lr_half:rank:1:8m
+val_bpb=2.255822
+S1 9/70: embedding_lr_double:rank:0:21m
+val_bpb=1.737113
+S1 10/70: baseline:distinct_seed:7:21m
+val_bpb=1.755911
+S1 11/70: baseline:distinct_seed:6:21m
+val_bpb=1.738950
+S1 12/70: baseline:fixed_seed:4:8m
+val_bpb=2.211994
+S1 13/70: matrix_lr_double:rank:2:21m
+val_bpb=1.804806
+S1 14/70: baseline:distinct_seed:8:8m
+val_bpb=2.124505
+S1 15/70: embedding_lr_double:rank:1:21m
+val_bpb=1.771870
+S1 16/70: baseline:distinct_seed:6:8m
+val_bpb=2.112014
+S1 17/70: baseline:fixed_seed:7:21m
+val_bpb=1.814056
+S1 18/70: baseline:fixed_seed:4:21m
+val_bpb=1.878149
+S1 19/70: weight_decay_zero:rank:2:21m
+val_bpb=1.831587
+S1 20/70: baseline:fixed_seed:1:8m
+val_bpb=2.222546
+S1 21/70: matrix_lr_half:rank:0:21m
+val_bpb=1.676686
+S1 22/70: embedding_lr_half:rank:0:21m
+val_bpb=1.750283
+S1 23/70: baseline:fixed_seed:6:21m
+val_bpb=1.801692
+S1 24/70: baseline:distinct_seed:4:8m
+val_bpb=2.132538
+S1 25/70: baseline:fixed_seed:0:21m
+val_bpb=1.833996
+S1 26/70: baseline:distinct_seed:3:8m
+val_bpb=2.124805
+S1 27/70: baseline:distinct_seed:8:21m
+val_bpb=1.774857
+S1 28/70: embedding_lr_half:rank:1:21m
+val_bpb=1.822755
+S1 29/70: baseline:distinct_seed:2:21m
+val_bpb=1.759818
+S1 30/70: baseline:distinct_seed:4:21m
+val_bpb=1.790679
+S1 31/70: baseline:fixed_seed:2:8m
+val_bpb=2.216618
+S1 32/70: matrix_lr_half:rank:2:21m
+val_bpb=1.799277
+S1 33/70: baseline:fixed_seed:7:8m
+val_bpb=2.234837
+S1 34/70: baseline:distinct_seed:9:21m
+val_bpb=1.756364
+S1 35/70: matrix_lr_half:rank:1:21m
+val_bpb=1.714456
+S1 36/70: embedding_lr_half:rank:2:21m
+val_bpb=1.783242
+S1 37/70: matrix_lr_double:rank:1:21m
+val_bpb=1.802361
+S1 38/70: baseline:fixed_seed:8:21m
+val_bpb=1.756859
+S1 39/70: matrix_lr_double:rank:0:21m
+val_bpb=1.799632
+S1 40/70: baseline:fixed_seed:1:21m
+val_bpb=1.785975
+S1 41/70: weight_decay_zero:rank:1:21m
+val_bpb=1.946349
+S1 42/70: baseline:fixed_seed:3:8m
+val_bpb=2.259949
+S1 43/70: baseline:fixed_seed:9:21m
+val_bpb=1.803040
+S1 44/70: embedding_lr_half:rank:2:8m
+val_bpb=2.218449
+S1 45/70: embedding_lr_double:rank:2:8m
+val_bpb=2.191280
+S1 46/70: baseline:fixed_seed:6:8m
+val_bpb=2.154165
+S1 47/70: embedding_lr_double:rank:0:8m
+val_bpb=2.083139
+S1 48/70: matrix_lr_half:rank:0:8m
+val_bpb=2.036784
+S1 49/70: baseline:distinct_seed:5:8m
+val_bpb=2.102778
+S1 50/70: embedding_lr_double:rank:2:21m
+val_bpb=1.741558
+S1 51/70: baseline:fixed_seed:9:8m
+val_bpb=2.267380
+S1 52/70: weight_decay_zero:rank:1:8m
+val_bpb=2.219736
+S1 53/70: baseline:distinct_seed:9:8m
+val_bpb=2.138353
+S1 54/70: embedding_lr_half:rank:0:8m
+val_bpb=2.147088
+S1 55/70: baseline:fixed_seed:0:8m
+val_bpb=2.250974
+S1 56/70: weight_decay_zero:rank:2:8m
+val_bpb=2.175912
+S1 57/70: matrix_lr_double:rank:2:8m
+val_bpb=2.225712
+S1 58/70: weight_decay_zero:rank:0:8m
+val_bpb=2.156851
+S1 59/70: baseline:fixed_seed:5:8m
+val_bpb=2.174640
+S1 60/70: baseline:fixed_seed:5:21m
+val_bpb=1.820904
+S1 61/70: matrix_lr_half:rank:1:8m
+val_bpb=2.077783
+S1 62/70: baseline:fixed_seed:8:8m
+val_bpb=2.159799
+S1 63/70: baseline:distinct_seed:2:8m
+val_bpb=2.132276
+S1 64/70: baseline:distinct_seed:1:8m
+val_bpb=2.161231
+S1 65/70: baseline:distinct_seed:3:21m
+val_bpb=1.699669
+S1 66/70: matrix_lr_half:rank:2:8m
+val_bpb=2.384880
+S1 67/70: baseline:distinct_seed:7:8m
+val_bpb=2.158209
+S1 68/70: baseline:fixed_seed:2:21m
+val_bpb=1.775358
+S1 69/70: baseline:distinct_seed:5:21m
+val_bpb=1.720232
+S1 70/70: matrix_lr_double:rank:0:8m
+val_bpb=2.256452

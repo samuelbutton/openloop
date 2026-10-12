@@ -1,0 +1,226 @@
+{
+  "slot": "baseline:distinct_seed:0:8m",
+  "run": {
+    "id": "aabe0993a6e14ef68f9e6ebdc5dc8232",
+    "attempt_id": "7bf2cbdd05bf4cfdb45166f7bc8f610e",
+    "inputs": {
+      "source_hash": "89ff663ca9b8ad37e160fc265e9dd301abf5d16050f8075f6012759fc37ad6cf",
+      "dependencies_hash": "c6f943a33baa356ccb1a726da99caba058be529abb7754b3a1ade2ce0c067c31",
+      "data_hash": "93ea20c138c41e1e463324917a295a2d41b2fd1e4a1d01f690c889ff9d9ccb9f",
+      "environment_hash": "dfccb6da96b967a55630c34777949bef9a12cf5a91983cf54e38f55daecbb4cc",
+      "evaluator_hash": "9fb99f86ad0a052053f011662d7815e7034ccf3d35d304a62f3322155cf0841c",
+      "loop_hash": "9cbf56d5e8c74126c9041cb64b8f2d34f08f7959923e96afb3be6215bcd4a013",
+      "seed": 1000,
+      "fidelity": "8m",
+      "budget_unit": "tokens",
+      "budget_amount": 8388608,
+      "reproducibility": "noisy",
+      "config": {
+        "ADAM_BETAS": [
+          0.8,
+          0.95
+        ],
+        "ASPECT_RATIO": 64,
+        "DEPTH": 4,
+        "DEVICE_BATCH_SIZE": 16,
+        "EMBEDDING_LR": 0.6,
+        "FINAL_LR_FRAC": 0.0,
+        "HEAD_DIM": 128,
+        "MATRIX_LR": 0.04,
+        "SCALAR_LR": 0.5,
+        "TOTAL_BATCH_SIZE": 65536,
+        "UNEMBEDDING_LR": 0.004,
+        "WARMDOWN_RATIO": 0.5,
+        "WARMUP_RATIO": 0.0,
+        "WEIGHT_DECAY": 0.2,
+        "WINDOW_PATTERN": "SSSL"
+      },
+      "execution": {
+        "backend": "mlx",
+        "cpu_limit_seconds": null,
+        "device": "gpu",
+        "evaluation_batch": 256,
+        "evaluation_tokens": 1572864,
+        "file_limit_bytes": null,
+        "memory_limit_bytes": 17179869184,
+        "queue_limit_seconds": null,
+        "sequence_length": 2048,
+        "wall_limit_seconds": 3600,
+        "worker_log_limit_bytes": 16777216
+      },
+      "tokenizer_hash": "ebb01045205e74c7b77b27ccd565c3e94327a8b00579e5d92649d8158dd65920",
+      "phase": "screen"
+    },
+    "hypothesis": "S1 calibration on validation only",
+    "parents": [],
+    "purpose": "replication",
+    "retry_of": null,
+    "created_at": "2026-10-11T22:53:17.572246+00:00",
+    "reused_from": null,
+    "status": "succeeded",
+    "preparations": [],
+    "events": [
+      {
+        "sequence": 1,
+        "kind": "stage_started",
+        "timestamp": "2026-10-11T22:53:17.572220+00:00",
+        "stage": "queue",
+        "payload": {}
+      },
+      {
+        "sequence": 2,
+        "kind": "stage_finished",
+        "timestamp": "2026-10-11T22:53:17.572716+00:00",
+        "stage": "queue",
+        "payload": {
+          "duration_clock": "monotonic",
+          "duration_seconds": 7.654214277863503e-05
+        }
+      },
+      {
+        "sequence": 3,
+        "kind": "stage_started",
+        "timestamp": "2026-10-11T22:53:17.572736+00:00",
+        "stage": "execution",
+        "payload": {}
+      },
+      {
+        "sequence": 4,
+        "kind": "stage_finished",
+        "timestamp": "2026-10-11T22:55:47.888108+00:00",
+        "stage": "execution",
+        "payload": {
+          "duration_clock": "monotonic",
+          "duration_seconds": 150.31544029107317
+        }
+      },
+      {
+        "sequence": 5,
+        "kind": "stage_started",
+        "timestamp": "2026-10-11T22:55:47.888141+00:00",
+        "stage": "evaluation",
+        "payload": {}
+      },
+      {
+        "sequence": 6,
+        "kind": "stage_finished",
+        "timestamp": "2026-10-11T22:55:47.888614+00:00",
+        "stage": "evaluation",
+        "payload": {
+          "duration_clock": "monotonic",
+          "duration_seconds": 0.0001155841164290905
+        }
+      },
+      {
+        "sequence": 7,
+        "kind": "succeeded",
+        "timestamp": "2026-10-11T22:55:47.888628+00:00",
+        "stage": null,
+        "payload": {
+          "artifacts": {
+            "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": "326397114d0908cf1d21d849cf621777ac41ba1807c71577ebf8efc936610be1"
+          },
+          "metrics": {
+            "val_bpb": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "validation",
+              "unit": "BPB",
+              "value": 2.1337264971438668
+            }
+          },
+          "observations": {
+            "peak_rss_bytes": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "execution",
+              "unit": "bytes",
+              "value": 414842880.0
+            },
+            "process_seconds": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "execution",
+              "unit": "seconds",
+              "value": 150.29674633266404
+            },
+            "queued_seconds": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "execution",
+              "unit": "seconds",
+              "value": 0.00029087532311677933
+            },
+            "tokens_per_second": {
+              "direction": "maximize",
+              "sample_count": 1,
+              "split": "train",
+              "unit": "tokens/s",
+              "value": 59397.025427667904
+            },
+            "training_seconds": {
+              "direction": "minimize",
+              "sample_count": 1,
+              "split": "train",
+              "unit": "seconds",
+              "value": 141.22942924499512
+            }
+          }
+        }
+      }
+    ],
+    "result": {
+      "metrics": {
+        "val_bpb": {
+          "value": 2.1337264971438668,
+          "unit": "BPB",
+          "direction": "minimize",
+          "split": "validation",
+          "sample_count": 1
+        }
+      },
+      "artifacts": {
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "326397114d0908cf1d21d849cf621777ac41ba1807c71577ebf8efc936610be1"
+      },
+      "observations": {
+        "peak_rss_bytes": {
+          "value": 414842880.0,
+          "unit": "bytes",
+          "direction": "minimize",
+          "split": "execution",
+          "sample_count": 1
+        },
+        "process_seconds": {
+          "value": 150.29674633266404,
+          "unit": "seconds",
+          "direction": "minimize",
+          "split": "execution",
+          "sample_count": 1
+        },
+        "queued_seconds": {
+          "value": 0.00029087532311677933,
+          "unit": "seconds",
+          "direction": "minimize",
+          "split": "execution",
+          "sample_count": 1
+        },
+        "tokens_per_second": {
+          "value": 59397.025427667904,
+          "unit": "tokens/s",
+          "direction": "maximize",
+          "split": "train",
+          "sample_count": 1
+        },
+        "training_seconds": {
+          "value": 141.22942924499512,
+          "unit": "seconds",
+          "direction": "minimize",
+          "split": "train",
+          "sample_count": 1
+        }
+      }
+    }
+  }
+}
