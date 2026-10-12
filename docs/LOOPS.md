@@ -6,6 +6,7 @@ Implemented on October 9, 2026. Needs: N1, N2, N4, N8, and N9 in [NEEDS.md](../N
 `ExperimentEnv` implements this contract through the public ledger API.
 One instance serves one fixed candidate.
 It has no reset method.
+The [T4 guide](T4.md) describes NAS-Bench-201 and HPO-B behind this same contract.
 
 ## Contract
 

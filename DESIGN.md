@@ -20,6 +20,8 @@ Experiment inputs declare whether results are deterministic or noisy.
 The [ledger guide](docs/LEDGER.md) describes its API and schema.
 Campaign records, artifact storage, and spend records remain planned extensions.
 The [loop interface and T0/T1 adapters](docs/LOOPS.md) are implemented.
+The [T4 adapters](docs/T4.md) expose NAS-Bench-201 and HPO-B through the same contract.
+They use recorded validation outcomes and preserve the benchmark task roles.
 T1 job generation and CPU stand-ins are checked.
 The [S1 study](research/s1/README.md) completed all 70 legacy-recipe runs.
 The [shared T1 recipe](src/openloop/loops/recipes/m4_pro_v1/README.md) ports the published M4 Pro winner and freezes its source and defaults.

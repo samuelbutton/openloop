@@ -74,6 +74,7 @@ ledger API. T0 supplies a planted objective with seeded noise. T1 adapts the pin
 MLX training script to exact token budgets at two fidelities (8m and 21m tokens).
 Candidate settings, frozen evaluators, and work limits are checked before publication.
 The [loop guide](docs/LOOPS.md) includes an offline example and native-worker requirements.
+The [T4 adapters](docs/T4.md) expose NAS-Bench-201 architecture lookups and HPO-B configuration lookups through the same interface.
 
 The [public M4 Pro reproduction](research/reproductions/m4-pro-2026-10-10/README.md)
 reached 1.410165 val_bpb with the unmodified published winner, against its 1.429396

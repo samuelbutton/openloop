@@ -18,8 +18,10 @@ from .models import (
 )
 from .t0 import T0, PlantedTruth
 from .t1 import T1, TrainingSource
+from .t4 import HPOB, NASBench201, TabularLoop
 
 __all__ = [
+    "HPOB",
     "T0",
     "T1",
     "ContractError",
@@ -30,12 +32,14 @@ __all__ = [
     "LoopAction",
     "LoopEnv",
     "LoopSpec",
+    "NASBench201",
     "Observation",
     "Phase",
     "PlantedTruth",
     "RunContext",
     "Runner",
     "StepResult",
+    "TabularLoop",
     "TrainingSource",
     "Workload",
 ]
