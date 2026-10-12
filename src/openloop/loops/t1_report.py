@@ -14,10 +14,11 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from openloop.ledger import JSONValue
+from openloop.ledger import JSONValue, content_hash
 
 from .corpus import Corpus
 from .files import adapter_digest
+from .recipe import RECIPE_HASHES, RECIPE_REVISION, SHARED_RECIPE
 from .t1 import (
     ADAPTER_FILES,
     FIDELITIES,
@@ -59,9 +60,10 @@ def build_report(
     corpus_root: Path | None = None,
     tokenizer_dir: Path | None = None,
     check_runtime: bool = False,
+    shared_recipe: bool = True,
 ) -> dict[str, JSONValue]:
     """Compile both programs without executing them and describe the result."""
-    source = TrainingSource.load(repository)
+    source = TrainingSource.load(repository, shared_recipe=shared_recipe)
     batch = baseline_config(source.train)[TrainingSetting.TOTAL_BATCH_SIZE]
     if type(batch) is not int:
         raise TypeError("Baseline batch size must be an integer")
@@ -89,8 +91,19 @@ def build_report(
         "seed": REPORT_SEED,
         "tokenizer_dir": REPORT_TOKENIZER_DIR,
         "adapter_hash": adapter_digest(*ADAPTER_FILES),
+        "source_hash": source.hash,
+        "train_sha256": program_digest(source.train),
+        "dependencies_hash": content_hash(source.lock),
+        "evaluator_hash": content_hash(
+            {"prepare": source.prepare, "worker": adapter_digest(*ADAPTER_FILES)}
+        ),
+        "baseline": dict(baseline_config(source.train)),
+        "recipe": SHARED_RECIPE if shared_recipe else "legacy-adamw",
         "fidelities": fidelities,
     }
+    if shared_recipe:
+        report["recipe_revision"] = RECIPE_REVISION
+        report["recipe_sha256"] = dict(RECIPE_HASHES)
     if check_runtime:
         report["dependencies"] = dict(verify_runtime(source.lock))
     if corpus_root is not None:
@@ -109,6 +122,7 @@ def main() -> None:
     parser.add_argument("--tokenizer-dir", type=Path)
     parser.add_argument("--date", default=date.today().isoformat())
     parser.add_argument("--verify-runtime", action="store_true")
+    parser.add_argument("--legacy-recipe", action="store_true")
     args = parser.parse_args()
     report = build_report(
         args.upstream,
@@ -116,6 +130,7 @@ def main() -> None:
         corpus_root=args.corpus,
         tokenizer_dir=args.tokenizer_dir,
         check_runtime=args.verify_runtime,
+        shared_recipe=not args.legacy_recipe,
     )
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 

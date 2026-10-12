@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-12",
+  "check": "compile only; installed versions checked",
+  "upstream_revision": "766a25ff22afa799efd8d0aa450a4348e4749df2",
+  "upstream_sha256": {
+    "train.py": "49f0993f10b5f8af223c6be272b067fe1c8b5171ee6f5add8ed177b71e459124",
+    "prepare.py": "561d40660b39628fbc9cc45430613534acaea23765c13b5fcd3c5563cf4983b1",
+    "uv.lock": "d260945ae38ffc55443f7bdad5cf4c3b3b9b5313cf7cb36ca795ffe7422ca0ab"
+  },
+  "python": "3.12.13",
+  "seed": 42,
+  "tokenizer_dir": "/frozen/tokenizer",
+  "adapter_hash": "9040cfc3cee9a910d2f9c93f9a417629b6bf1962b81d05d2a962a4e478841d6d",
+  "source_hash": "702c980e4fc33c2cf16f789dcea3e935dfc4e344bdf9822e56fe441bffd25603",
+  "train_sha256": "1a94a62eb8f08bccd3ca57b018da812b2009d733e7f795122ecabadf6ba69c4d",
+  "dependencies_hash": "c6f943a33baa356ccb1a726da99caba058be529abb7754b3a1ade2ce0c067c31",
+  "evaluator_hash": "cda4c4cc7a8a8b9a7a2b3976b14827e7489a5eb2c6fa8e54107fa8e272cb23bc",
+  "baseline": {
+    "ASPECT_RATIO": 64,
+    "HEAD_DIM": 128,
+    "WINDOW_PATTERN": "SSSL",
+    "TOTAL_BATCH_SIZE": 8192,
+    "EMBEDDING_LR": 0.6,
+    "UNEMBEDDING_LR": 0.004,
+    "MATRIX_LR": 0.04,
+    "SCALAR_LR": 0.5,
+    "WEIGHT_DECAY": 0.2,
+    "ADAM_BETAS": [
+      0.8,
+      0.95
+    ],
+    "WARMUP_RATIO": 0.0,
+    "WARMDOWN_RATIO": 0.7,
+    "FINAL_LR_FRAC": 0.0,
+    "DEPTH": 6,
+    "DEVICE_BATCH_SIZE": 4
+  },
+  "recipe": "m4-pro-v1",
+  "fidelities": [
+    {
+      "name": "8m",
+      "training_tokens": 8388608,
+      "expected_updates": 1024,
+      "program_sha256": "3f660519263da6fe32e433c0265ef004c5e005745c57d61e78e1d01b742b2808",
+      "compiled": true
+    },
+    {
+      "name": "21m",
+      "training_tokens": 20971520,
+      "expected_updates": 2560,
+      "program_sha256": "71cd2cb5901e060473867c39e890966b12147bbf3bdd9a679ac73906fb948107",
+      "compiled": true
+    }
+  ],
+  "recipe_revision": "1d8377683d9a5b1af14f5933e6f5130c54e94460",
+  "recipe_sha256": {
+    "train_mlx.py.txt": "f53ec5cfee3b768627b02387645f5dca3ba2fec51ae24bf5521854bcba821d52",
+    "muon_mlx.py.txt": "a941fdb060dac1d9a76f5c19bd72b4996e67e3f387a8ee35fc29b173e8d54d38"
+  },
+  "dependencies": {
+    "certifi": "2026.2.25",
+    "charset-normalizer": "3.4.5",
+    "idna": "3.11",
+    "mlx": "0.31.0",
+    "mlx-metal": "0.31.0",
+    "numpy": "2.4.2",
+    "pyarrow": "23.0.1",
+    "regex": "2026.2.28",
+    "requests": "2.32.5",
+    "rustbpe": "0.1.0",
+    "tiktoken": "0.12.0",
+    "urllib3": "2.6.3"
+  },
+  "data_hash": "93ea20c138c41e1e463324917a295a2d41b2fd1e4a1d01f690c889ff9d9ccb9f",
+  "tokenizer_hash": "ebb01045205e74c7b77b27ccd565c3e94327a8b00579e5d92649d8158dd65920",
+  "native_training_executed": false,
+  "fixed_architecture": {
+    "MLP_RATIO": 1.5,
+    "optimizer": "MuonAdamWMLX",
+    "logit_softcap": 15
+  },
+  "reference": {
+    "repository": "https://github.com/elementalcollision/autoresearch",
+    "published_val_bpb": 1.429396,
+    "local_reproduction_val_bpb": 1.410165,
+    "dataset": "ClimbMix",
+    "training_budget": "300 seconds",
+    "validation_tokens": 5242880,
+    "transfer_performance_verified": false
+  }
+}

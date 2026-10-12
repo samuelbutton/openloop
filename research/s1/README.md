@@ -1,12 +1,27 @@
 # S1 part 1: T1 calibration
 
 Prepared on October 10, 2026. Need: [N2](../../NEEDS.md#n1n10).
-Status: [stopped at the owner's request](run-2026-10-10/stopped-by-owner.json) on October 10, 2026.
+Status: complete. The [October 11 batch report](run-2026-10-11/report.json) contains all 70 runs.
+The [completion record](run-2026-10-11/finished.json) is dated October 12, 2026 UTC.
+It measured screen/full Spearman rho 0.60, with a matched-seed bootstrap interval of 0.2571 to 0.8857.
+
+| Legacy baseline noise | 8m sample SD, BPB | 21m sample SD, BPB |
+| --- | ---: | ---: |
+| Fixed seed, ten executions | 0.040683 | 0.034504 |
+| Distinct seeds, ten executions | 0.018094 | 0.026735 |
+
+The study used the legacy AdamW recipe. These values do not calibrate the new
+[shared recipe](../../src/openloop/loops/recipes/m4_pro_v1/README.md).
+The runner now uses that shared recipe by default and generates a different plan.
+The old reports and plans retain their original identities.
+
+## Earlier stopped batch
+
+The earlier batch was [stopped at the owner's request](run-2026-10-10/stopped-by-owner.json) on October 10, 2026.
 Two pilot runs completed. The third run was cancelled.
 The owner previously approved the [frozen batch](approval-2026-10-10.json).
 Local execution must not resume without a new instruction.
-The task is not complete until all runs and the analysis finish.
-No T1 noise estimate or fidelity rank correlation has been measured yet.
+That partial batch alone did not measure a noise estimate or fidelity rank correlation.
 The partial [8m](run-2026-10-10/run-001.json) and [21m](run-2026-10-10/run-002.json) pilot scores are 2.159976 and 1.745289 BPB.
 These single scores are not noise estimates.
 The [interruption record](run-2026-10-10/interrupted.json) preserves the cancellation.
@@ -128,5 +143,4 @@ No hypothesis promotion or held-out claim occurs in S1 part 1.
 
 The tests use synthetic ledger scores and CPU fixtures only.
 They check run counts, token caps, separate noise groups, ties, correlation, invalid evidence, and the prepare-only CLI.
-Native pilot execution is verified at both fidelities.
-The full noise and rank measurements remain incomplete after the owner's stop request.
+Native execution and the full noise and rank measurements are recorded in the completed October 11 batch.

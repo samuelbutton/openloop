@@ -27,7 +27,7 @@ GOLDEN_PROGRAM_SHA256 = {
 @pytest.fixture(scope="module")
 def source() -> TrainingSource:
     try:
-        return TrainingSource.load(CLONE)
+        return TrainingSource.load(CLONE, shared_recipe=False)
     except (FileNotFoundError, ContractError) as error:
         pytest.skip(f"Pinned upstream clone unavailable at {CLONE}: {error}")
 
@@ -63,7 +63,7 @@ def test_real_source_programs_have_token_control_and_no_evaluator(
 def test_report_matches_golden_hashes_without_importing_runtime(
     source: TrainingSource,
 ) -> None:
-    report = build_report(CLONE, report_date="2026-01-01")
+    report = build_report(CLONE, report_date="2026-01-01", shared_recipe=False)
     assert report["native_training_executed"] is False
     assert report["fidelities"] == [
         {
@@ -75,3 +75,27 @@ def test_report_matches_golden_hashes_without_importing_runtime(
         }
         for name, tokens in (("8m", 8_388_608), ("21m", 20_971_520))
     ]
+
+
+def test_default_loader_ports_recipe_and_preserves_trusted_inputs(
+    source: TrainingSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    shared = TrainingSource.load(CLONE)
+    assert shared.prepare == source.prepare
+    assert shared.lock == source.lock
+    assert shared.hash != source.hash
+    assert "DEPTH = 6" in shared.train
+    assert "TOTAL_BATCH_SIZE = 8192" in shared.train
+    monkeypatch.setattr("openloop.loops.t1.SHARED_TRAIN_SHA256", "0" * 64)
+    with pytest.raises(ContractError, match="differs from its freeze"):
+        TrainingSource.load(CLONE)
+
+
+def test_default_loader_rejects_recipe_byte_drift(
+    source: TrainingSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "openloop.loops.t1.RECIPE_HASHES", {"train_mlx.py.txt": "0" * 64}
+    )
+    with pytest.raises(ContractError, match="Frozen shared recipe changed"):
+        TrainingSource.load(CLONE)
