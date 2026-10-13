@@ -244,5 +244,7 @@ OPENLOOP_TEST_IMAGE=<name@sha256:digest> uv run pytest tests/executors/test_cont
 Set `OPENLOOP_TEST_DOCKER` and `OPENLOOP_TEST_DOCKER_SOCKET` to override discovery.
 Delete `.pytest_cache/sandbox` afterwards.
 
-The executor has no durable queue, cloud backend, mock backend, or container-escape audit.
+The [mock executor](MOCK_EXECUTOR.md) replays explicit recorded durations and outcomes on a virtual clock.
+It implements the same methods and returns receipts labeled as simulated.
+The executors have no durable queue, cloud backend, or container-escape audit.
 No native T1 training was run for this change.

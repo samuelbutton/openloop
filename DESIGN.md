@@ -32,7 +32,9 @@ Both policies are checked on simulated T0 families.
 The [allocation plugins](docs/ALLOCATORS.md) select eligible screen jobs within a supplied budget and free worker slots.
 They provide greedy, random, UCB1 bandit, successive halving, and a declared-grid Hyperband variant.
 Offline T0 and NAS-Bench-201 fixture checks are complete. S2 policy comparisons remain planned.
-The mock executor, GCP stub, application spend gate, and other plugins remain planned.
+The [mock executor](docs/MOCK_EXECUTOR.md) replays recorded durations and outcomes with a virtual clock and simulated worker slots.
+Replay checks preserve all 70 legacy S1 outcomes. An offline test admits 10,000 simulated jobs.
+The GCP stub, application spend gate, and other plugins remain planned.
 The [model configuration](config/models.toml) selects `gpt-6-astra` as proposer and `gpt-6.1-sol` through Codex CLI as implementer.
 The [billing configuration](config/billing.toml) records a $10 monthly OpenAI limit and $10 of RunPod credit.
 RunPod auto-pay is off.
@@ -259,6 +261,10 @@ the candidate can write limited, hashed files to an outputs directory.
 Executor ownership and idempotency remain in memory.
 The [executor guide](docs/EXECUTORS.md) gives the limits and failure semantics.
 RunPod remains unused until a GPU workload is approved.
+The mock executor uses explicit recording sequences and does not execute commands.
+Its receipts label lifecycle times as simulated and retain the original result separately.
+It models FIFO capacity, cancellation, queue expiry, and wall limits.
+It does not model hardware contention or monetary costs.
 Later training adapters can expose `forward_backward`, `optim_step`, `sample`, and `save_state` operations.
 Those operations do not replace the experiment contract or create a new training framework.
 
@@ -348,7 +354,8 @@ Restricted execution checks must establish the N8 boundary before autonomous cod
 Stable hashes, cache references, replication, contract violations, and ledger consistency after SIGKILL are checked.
 The [ledger guide](docs/LEDGER.md#test-coverage) links the tests and defines their limits.
 T0 statistical decisions are checked for power and error rates on [simulated families](docs/DECIDER.md#t0-validation).
-The complete T1 verification sequence, mock scale checks, and broader restricted-execution validation remain planned checks.
+The [mock replay checks](docs/MOCK_EXECUTOR.md#validation-and-limits) cover admission, capacity, and unchanged recorded outcomes.
+The complete T1 verification sequence, S2 allocation comparisons, and broader restricted-execution validation remain planned checks.
 Setup reports alone do not complete those checks.
 
 [ste100]: https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf
