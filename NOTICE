@@ -1,0 +1,24 @@
+openloop
+Third-party code that this repository vendors. openloop itself is Apache-2.0 (see LICENSE).
+
+1. Shared T1 starting recipe m4-pro-v1
+   Files:     src/openloop/loops/recipes/m4_pro_v1/train_mlx.py.txt
+              src/openloop/loops/recipes/m4_pro_v1/muon_mlx.py.txt
+   Upstream:  https://github.com/elementalcollision/autoresearch
+   Revision:  1d8377683d9a5b1af14f5933e6f5130c54e94460
+   Credited upstream: https://github.com/karpathy/autoresearch (Andrej Karpathy)
+              and the reference MLX port https://github.com/trevin-creator/autoresearch-mlx
+              (Trevin Peterson), both named in the fork's README.
+   License:   MIT, as stated by the upstream README ("## License" / "MIT").
+   License file: neither the pinned revision nor the current head of the
+              elementalcollision fork contains a LICENSE file, and the head of
+              karpathy/autoresearch at the time of checking (October 12, 2026) has
+              none either. The text in src/openloop/loops/recipes/m4_pro_v1/LICENSE
+              is the standard MIT text with the copyright lines Andrej Karpathy
+              and Trevin Peterson. It is NOT a verbatim upstream file, and it does
+              not list the elementalcollision contributors. Obtain written
+              confirmation of the copyright holders before redistributing.
+   Integrity: the .py.txt bytes are pinned by SHA-256 in src/openloop/loops/recipe.py
+              and in the recipe's freeze.json. No provenance header is added to
+              them, because that would change the pinned hashes. Provenance lives
+              here and in src/openloop/loops/recipes/m4_pro_v1/README.md.

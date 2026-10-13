@@ -19,6 +19,7 @@ from .models import (
 from .t0 import T0, PlantedTruth
 from .t1 import T1, TrainingSource
 from .t4 import HPOB, NASBench201, TabularLoop
+from .t4_final import HeldOutEvaluator
 
 __all__ = [
     "HPOB",
@@ -27,6 +28,7 @@ __all__ = [
     "ContractError",
     "ExperimentEnv",
     "Fidelity",
+    "HeldOutEvaluator",
     "Job",
     "JobOutput",
     "LoopAction",

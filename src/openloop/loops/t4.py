@@ -2,6 +2,7 @@
 
 The trusted evaluator selects scores from frozen rows. Runners cannot submit
 their own score. These objects are not file-access or oracle security boundaries.
+They accept validation tables only; held-out tables belong to `t4_final`.
 """
 
 from __future__ import annotations
@@ -34,6 +35,10 @@ class TabularLoop:
     def __init__(self, table: RecordedTable) -> None:
         if self._benchmark is not None and table.benchmark is not self._benchmark:
             raise ContractError("Table belongs to a different benchmark")
+        if table.held_out:
+            raise ContractError(
+                "Held-out tables are readable only through HeldOutEvaluator"
+            )
         self._table = table
         adapter = adapter_digest(
             "tabular.py", "tabular_loaders.py", "t4.py", "models.py", "files.py"
@@ -71,6 +76,10 @@ class TabularLoop:
     @property
     def spec(self) -> LoopSpec:
         return self._spec
+
+    @property
+    def benchmark(self) -> Benchmark:
+        return self._table.benchmark
 
     @property
     def candidates(self) -> tuple[JSONValue, ...]:

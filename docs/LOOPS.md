@@ -257,9 +257,11 @@ It compiles them and compares their SHA-256 digests with pinned literals.
 It also checks the seed, the token stop, the token-based progress, the startup exclusion, and the absence of the evaluator.
 It skips when `research/autoresearch-mlx` is absent or differs from the pin.
 
-The [compile-only report](loop-validation.json) records successful compilation of the pinned upstream source at both fidelities on October 9, 2026.
+The [compile-only report](loop-validation.json) records successful compilation of the shared-recipe programs at both fidelities on October 12, 2026.
 Its installed runtime matched all 12 locked dependencies, including MLX 0.31.0.
-Neither check executed GPU training.
+The report command executed no training.
+An earlier report from October 9, 2026 covered the legacy AdamW programs.
+Git history keeps it, and `--legacy-recipe` regenerates the legacy program hashes.
 Generate a new shared-recipe report with this command.
 It compiles the programs and imports no MLX.
 
@@ -274,7 +276,7 @@ PYTHONPATH=src research/autoresearch-mlx/.venv/bin/python -m openloop.loops.t1_r
 Omit it outside the upstream runtime.
 The `adapter_hash` field changes whenever an adapter file changes, so regenerate the report after such a change.
 Add `--legacy-recipe` to check the old program hashes.
-The old report is historical evidence; do not overwrite it.
+The legacy report is historical evidence in Git history.
 The [shared freeze](../src/openloop/loops/recipes/m4_pro_v1/freeze.json) records the new source, programs, defaults, and input hashes.
 
 The logs stay in the root directory of the caller's executor.
@@ -284,6 +286,22 @@ The ledger stores only the job's result, so this identity remains unrecorded unt
 The [S1 part 1 study](../research/s1/README.md) completed 70 legacy-recipe runs on October 12, 2026 UTC.
 It measured separate fixed-seed and distinct-seed noise floors and a screen/full Spearman correlation of 0.60.
 These measurements apply to the legacy source and settings.
-The shared recipe passed compile and CPU checks; native training and recalibration remain pending.
+The shared recipe passed compile and CPU checks.
+
+### Native validation of the shared recipe
+
+One native 8m run of `m4-pro-v1` completed on October 12, 2026: seed 1000, `val_bpb` 1.436965, about 22.1k tokens per second, 380.2 seconds of training, and 405.4 seconds for the process (about 6.8 minutes).
+The evidence is [run.json](../research/smoke/m4-pro-v1-2026-10-12/run.json), described in the [smoke README](../research/smoke/README.md).
+A 21m run would take about 16 minutes; this is an estimate from the 8m run, not a measurement.
+This is one sample, not a noise estimate.
+It uses the frozen FineWeb-Edu split, so it is not comparable to the 1.410 ClimbMix reproduction.
+The S1 noise floor and rank results apply to the legacy recipe.
+The decider's per-campaign calibration of 5 pairs measures the shared recipe's noise, and no separate S1 re-run is planned.
+The S1 calibration panel's learning-rate variants were designed for AdamW.
+Derive them again for Muon before reuse.
+The smoke run recorded the adapter files as they were on October 12, 2026.
+The composer's rewrite counters later changed `recipe.py`, an adapter file, so the `adapter_hash`, `evaluator_hash`, and loop hash of new runs differ from that record.
+The source, dependency, data, and program hashes are unchanged.
+`freeze.json` keeps its freeze-time `native_training_executed: false`; the smoke record documents later validation.
 The [executors and shared GPU lane](EXECUTORS.md) are implemented and checked with CPU jobs.
 Statistical decisions and held-out release remain separate tasks.

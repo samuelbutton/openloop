@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 import stat
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -487,6 +488,9 @@ class ContainerExecutor:
 
     async def collect(self, job_id: str) -> Snapshot:
         return await self._supervisor.collect(job_id)
+
+    async def wait_any(self, job_ids: Iterable[str]) -> Snapshot:
+        return await self._supervisor.wait_any(job_ids)
 
     async def cancel(self, job_id: str) -> Snapshot:
         return await self._supervisor.cancel(job_id)

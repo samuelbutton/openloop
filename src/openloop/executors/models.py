@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import KW_ONLY, dataclass, field
 from datetime import datetime
 from enum import StrEnum
@@ -262,10 +262,23 @@ class Snapshot:
 
 
 class Executor(Protocol):
-    """In-process job ownership. collect waits; poll returns an immutable snapshot."""
+    """In-process job ownership.
+
+    poll is a non-blocking observation: it never waits and never advances a
+    simulated clock. Policies wait with collect (one job) or wait_any (the
+    first of several jobs), never by sleeping and polling. Sleep-polling
+    hangs on the mock executor, whose clock moves only when something waits.
+
+    wait_any returns the terminal snapshot of one job in job_ids. A job that is
+    already terminal returns at once; when several are terminal, the smallest
+    job ID wins. It does not remove the job from the set: a caller that loops
+    must drop each returned job. Cancelling a waiter does not cancel any job.
+    Empty or unknown job IDs raise InvalidJobError or UnknownJobError.
+    """
 
     async def submit(self, job: ProcessJob, *, key: str) -> str: ...
     async def poll(self, job_id: str) -> Snapshot: ...
     async def cancel(self, job_id: str) -> Snapshot: ...
     async def collect(self, job_id: str) -> Snapshot: ...
+    async def wait_any(self, job_ids: Iterable[str]) -> Snapshot: ...
     async def close(self) -> None: ...

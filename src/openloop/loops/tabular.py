@@ -1,6 +1,8 @@
 """Immutable tabular outcomes. No files, optional libraries, or oracle access.
 
 Rows describe recorded benchmark measurements, not new model training.
+A table whose scores come from a held-out split marks itself in its provenance.
+`TabularLoop` refuses such tables, so selection code cannot read them.
 """
 
 from collections.abc import Mapping
@@ -44,6 +46,20 @@ class MetaSplit(StrEnum):
 NAS_FIDELITIES = (Fidelity("12", 12), Fidelity("200", 200))
 HPOB_FIDELITIES = (Fidelity("lookup", 1),)
 
+NAS_SELECTION_SET = "x-valid"
+# For cifar100 and ImageNet16-120 the x-valid and x-test sets are the two halves
+# of the original test set, so these held-out scores are less separate than
+# cifar10-valid's, whose ori-test set is disjoint from its x-valid training split.
+NAS_HELD_OUT_SETS: Mapping[NASDataset, str] = MappingProxyType(
+    {
+        NASDataset.CIFAR10: "ori-test",
+        NASDataset.CIFAR100: "x-test",
+        NASDataset.IMAGENET: "x-test",
+    }
+)
+HPOB_HELD_OUT_SPLIT = "meta-test"
+HELD_OUT_SCORE_SPLITS = frozenset({*NAS_HELD_OUT_SETS.values(), HPOB_HELD_OUT_SPLIT})
+
 
 @dataclass(frozen=True)
 class RecordedOutcome:
@@ -85,6 +101,9 @@ class RecordedTable:
     _lookup: Mapping[tuple[int, str, int], RecordedOutcome] = field(
         init=False, repr=False, compare=False
     )
+    _seeds: Mapping[tuple[int, str], tuple[int, ...]] = field(
+        init=False, repr=False, compare=False
+    )
     _hash: str = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -124,6 +143,14 @@ class RecordedTable:
         object.__setattr__(self, "candidates", candidates)
         object.__setattr__(self, "outcomes", outcomes)
         object.__setattr__(self, "_lookup", MappingProxyType(lookup))
+        seeds: dict[tuple[int, str], list[int]] = {}
+        for row in outcomes:
+            seeds.setdefault((row.index, row.fidelity), []).append(row.seed)
+        object.__setattr__(
+            self,
+            "_seeds",
+            MappingProxyType({key: tuple(value) for key, value in seeds.items()}),
+        )
         object.__setattr__(
             self,
             "_hash",
@@ -153,13 +180,22 @@ class RecordedTable:
     def hash(self) -> str:
         return self._hash
 
+    @property
+    def held_out(self) -> bool:
+        """Whether the scores come from a split that selection must never read."""
+        return self.provenance.get("score_split") in HELD_OUT_SCORE_SPLITS
+
+    @property
+    def metric_split(self) -> str:
+        return "held_out" if self.held_out else "validation"
+
     def seeds(self, index: int, fidelity: str) -> tuple[int, ...]:
-        """Return exact recorded seeds; never remap a requested seed."""
-        return tuple(
-            row.seed
-            for row in self.outcomes
-            if row.index == index and row.fidelity == fidelity
-        )
+        """Return exact recorded seeds, in ascending order; never remap a seed.
+
+        Fidelities have their own seed sets, so NAS 12- and 200-epoch rows are
+        not seed-paired.
+        """
+        return self._seeds.get((index, fidelity), ())
 
     def lookup(self, index: int, fidelity: str, seed: int) -> RecordedOutcome:
         """Reject missing measurements instead of drawing or averaging seeds."""

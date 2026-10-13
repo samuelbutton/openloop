@@ -1,8 +1,10 @@
 """Small simulated measurements through public loop and ledger APIs."""
 
+from dataclasses import replace
+
 from openloop.allocators import AllocationSnapshot
 from openloop.ledger import Ledger, Metric, Result, Run
-from openloop.loops import T0, Job, LoopAction, LoopSpec
+from openloop.loops import T0, Fidelity, Job, LoopAction, LoopSpec
 
 ENVIRONMENT = "a" * 64
 
@@ -35,3 +37,19 @@ def snapshot(
     return AllocationSnapshot(
         loop.spec, ENVIRONMENT, jobs, ledger.query(), budget, slots=slots
     )
+
+
+def fail(ledger: Ledger, offered: Job) -> Run:
+    """Record a terminal worker failure for one input."""
+    run = ledger.submit(offered.inputs)
+    ledger.start_stage(run.id, "execution")
+    return ledger.fail(run.id, "worker crashed")
+
+
+def geometric_loop(*amounts: int) -> T0:
+    """A T0 whose declared fidelities are the given work amounts, named by amount."""
+    loop = T0()
+    loop._spec = replace(  # pyright: ignore[reportPrivateUsage]
+        loop.spec, fidelities=tuple(Fidelity(str(amount), amount) for amount in amounts)
+    )
+    return loop

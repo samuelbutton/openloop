@@ -49,15 +49,26 @@ remains the candidate interface.
 ## Port and freeze
 
 The two `.py.txt` files are exact upstream source snapshots. SHA-256 checks run
-before composition. Their MIT license is retained in [LICENSE](LICENSE).
-Credit belongs to Andrej Karpathy, Trevin Peterson, and the elementalcollision
-contributors for the upstream models and optimizer port. The openloop adapter
-uses the repository's Apache-2.0 license.
+before composition. The upstream README states an MIT license; see
+[LICENSE](LICENSE) and the repository's [NOTICE](../../../../../NOTICE).
+Neither the pinned elementalcollision revision nor the karpathy/autoresearch
+head ships a license file, so [LICENSE](LICENSE) is the standard MIT text with the
+copyright lines for Andrej Karpathy and Trevin Peterson. It is not a verbatim
+upstream file and does not name the elementalcollision contributors; NOTICE records
+this open question. Credit belongs to Andrej Karpathy, Trevin Peterson, and the
+elementalcollision contributors for the upstream models and optimizer port. The
+openloop adapter uses the repository's Apache-2.0 license.
+
+Provenance (upstream URL, revision, license) lives here and in NOTICE, not in a
+header comment. A header would change the pinned bytes and their hashes.
 
 The pure [composer](../../recipe.py) inlines the optimizer and fixes depth 6.
 It removes hardware detection and estimated MFU output. It connects the published
 data-loader call to T1's frozen loader interface. The model and optimizer arithmetic
 remain unchanged. The composed training source has a separate enforced SHA-256 pin.
+The composer counts every rewrite and raises `ContractError` unless each matches
+exactly as often as `EXPECTED_REWRITES` declares, so a missing or surplus pattern
+fails loudly instead of leaving upstream code unmodified.
 A change to these bytes requires a new recipe version and freeze record.
 
 The existing token adapter supplies the requested seed, token-based learning-rate
@@ -82,11 +93,51 @@ They use float32 NumPy arithmetic and do not certify native MLX bfloat16 behavio
 Both full programs compile. All 12 installed package versions match the existing
 Python 3.12 / MLX 0.31.0 lock.
 
-No training of the port has run. The reference score is on ClimbMix with a
-300-second training budget and 5,242,880 evaluation tokens. It is not the expected
-FineWeb-Edu T1 score. Performance, native memory use, and the noise floor of this
-port remain unverified. The completed [S1 report][s1] applies to the legacy recipe.
-Recalibrate the shared recipe before using a noise threshold for promotions.
+## Native validation
+
+One native smoke run of this port completed on October 12, 2026. The record is
+[run.json](../../../../../research/smoke/m4-pro-v1-2026-10-12/run.json); the
+[smoke README](../../../../../research/smoke/README.md) gives the command and limits.
+
+| Fidelity | Seed | val_bpb | Throughput | Time |
+| --- | ---: | ---: | ---: | --- |
+| 8m | 1000 | 1.436965 | 22.1k tokens/s | 380.2 s training, 405.4 s process (about 6.8 min) |
+
+An 8m run takes about 6.8 minutes. A 21m run would take about 16 minutes; this
+is an estimate from the 8m run, not a measurement.
+
+- This is one sample. It is not a noise estimate, and it cannot rank candidates.
+- The score uses the frozen FineWeb-Edu split. It is not comparable to the 1.410
+  ClimbMix reproduction, which used a different dataset, budget, and evaluation size.
+- The noise floor and rank correlation from the completed [S1 report][s1] apply to
+  the legacy AdamW recipe. They do not transfer to this recipe. The decider's
+  per-campaign calibration of 5 pairs measures this recipe's noise; no separate S1
+  re-run is planned.
+- The S1 calibration panel's learning-rate variants were designed for AdamW. Derive
+  them again for Muon before reuse.
+- `freeze.json` keeps its freeze-time field `native_training_executed: false`. It
+  records the state when the recipe was frozen. Later validation lives in the smoke
+  record. Its `adapter_hash` and `evaluator_hash` cover openloop adapter files, so
+  they change with any adapter edit. The tests treat them as informational and pin
+  every other field to the code constants.
+
+## Checks and limits
+
+The [tests](../../../../../tests/loops/test_recipe.py) check source integrity,
+model AST equality, both token stops, startup timing, schedules, distinct
+identities, and the composer's rewrite counts. They also check that `freeze.json`
+agrees with the code constants: recipe revision and hashes, upstream hashes,
+baseline settings, fidelities, program hashes, and, when the pinned upstream clone
+is present, the source and dependency hashes.
+CPU optimizer checks cover tall, wide, and square matrices, zero
+gradients, finite updates, and the independent first-step AdamW formula.
+They use float32 NumPy arithmetic and do not certify native MLX bfloat16 behavior.
+Both full programs compile. All 12 installed package versions match the existing
+Python 3.12 / MLX 0.31.0 lock.
+
+The reference score is on ClimbMix with a 300-second training budget and 5,242,880
+evaluation tokens. It is not the expected FineWeb-Edu T1 score. Memory beyond
+sampled RAM and the noise floor of this port remain unmeasured.
 
 [winner]: https://github.com/elementalcollision/autoresearch/blob/1d8377683d9a5b1af14f5933e6f5130c54e94460/train_mlx.py
 [wiki]: https://github.com/elementalcollision/autoresearch/wiki/Experiment-Results-Mar-14-2026-M4-Pro/3337ce96ae8c5410fa79088a4273804d7f33bdd8

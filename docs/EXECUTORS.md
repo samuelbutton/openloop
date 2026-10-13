@@ -1,7 +1,7 @@
 # Executors
 
 Implemented on October 9, 2026. Needs: N3, N8, and N10 in [NEEDS.md](../NEEDS.md).
-The [source](../src/openloop/executors) defines `submit`, `poll`, `cancel`, and `collect`.
+The [source](../src/openloop/executors) defines `submit`, `poll`, `cancel`, `collect`, and `wait_any`.
 The [tests](../tests/executors) check lifecycle events, limits, isolation, outputs, and cleanup.
 
 ## Contract
@@ -20,9 +20,15 @@ The ledger owns experiment caching.
 Executor idempotency lasts for the life of one executor instance.
 It does not survive a coordinator restart.
 
-`poll(job_id)` returns an immutable `Snapshot`.
+`poll(job_id)` returns an immutable `Snapshot` without waiting.
+It is an observation, not a way to wait.
+Do not wait by sleeping and polling: the mock executor's clock moves only when something waits, so that loop never ends there.
 `collect(job_id)` waits for a terminal snapshot.
-Cancelling a collector does not cancel its job.
+`wait_any(job_ids)` waits for the first of several jobs and returns its terminal snapshot.
+A job that is already terminal returns at once, and the smallest job ID wins a tie.
+It does not remove the returned job, so a caller that loops must drop each one.
+Empty or unknown IDs raise `InvalidJobError` or `UnknownJobError`.
+Cancelling a collector or waiter does not cancel any job.
 `cancel(job_id)` stops owned work and waits for cleanup.
 `close()` cancels pending jobs and rejects new submissions.
 Always call `close()` in a `finally` block.
@@ -245,6 +251,7 @@ Set `OPENLOOP_TEST_DOCKER` and `OPENLOOP_TEST_DOCKER_SOCKET` to override discove
 Delete `.pytest_cache/sandbox` afterwards.
 
 The [mock executor](MOCK_EXECUTOR.md) replays explicit recorded durations and outcomes on a virtual clock.
-It implements the same methods and returns receipts labeled as simulated.
+It implements the same methods, including `wait_any`, and returns receipts labeled as simulated.
+It models worker slots and GPU lanes, and it draws recordings with replacement unless asked for an exact replay.
 The executors have no durable queue, cloud backend, or container-escape audit.
 No native T1 training was run for this change.

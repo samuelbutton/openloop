@@ -20,7 +20,9 @@ def test_capture_preserves_outcomes_and_provenance(
 ) -> None:
     run: Run = finish(ledger.submit(inputs), result)
     job = ProcessJob(("unused",), stdin=inputs.hash.encode())
-    recording = RecordedRun.from_run(run, job_hash=job.hash)
+    recording = RecordedRun.from_run(
+        run, job_hash=job.hash, duration_metric=Stage.EXECUTION
+    )
     assert recording.job_hash == job.hash
     assert recording.result == result
     assert recording.state is State.SUCCEEDED
@@ -36,7 +38,7 @@ def test_capture_preserves_outcomes_and_provenance(
     assert recording.source_hash != recording.hash
     alias = ledger.submit(inputs)
     with pytest.raises(InvalidJobError, match="cache alias"):
-        RecordedRun.from_run(alias, job_hash=job.hash)
+        RecordedRun.from_run(alias, job_hash=job.hash, duration_metric=Stage.EXECUTION)
     with pytest.raises(FrozenInstanceError):
         recording.duration_seconds = 99  # pyright: ignore[reportAttributeAccessIssue]
 
@@ -58,16 +60,22 @@ def test_explicit_observation_duration_does_not_invent_missing_time(
     with pytest.raises(InvalidJobError, match="Missing"):
         RecordedRun.from_run(run, job_hash="a" * 64, duration_metric="missing")
     with pytest.raises(InvalidJobError, match="stage"):
-        RecordedRun.from_run(replace(run, events=()), job_hash="a" * 64)
+        RecordedRun.from_run(
+            replace(run, events=()),
+            job_hash="a" * 64,
+            duration_metric=Stage.EXECUTION,
+        )
 
 
 def test_failed_runs_have_recorded_time_and_no_score(ledger: Ledger, inputs) -> None:
     run = ledger.submit(inputs)
     with pytest.raises(InvalidJobError, match="terminal"):
-        RecordedRun.from_run(run, job_hash="a" * 64)
+        RecordedRun.from_run(run, job_hash="a" * 64, duration_metric=Stage.EXECUTION)
     ledger.start_stage(run.id, "execution")
     failed = ledger.fail(run.id, "worker crashed")
-    recording = RecordedRun.from_run(failed, job_hash="a" * 64)
+    recording = RecordedRun.from_run(
+        failed, job_hash="a" * 64, duration_metric=Stage.EXECUTION
+    )
     assert recording.state is State.FAILED
     assert recording.result is None
     assert recording.error == "worker crashed"
@@ -79,8 +87,12 @@ def test_replications_remain_separate_recordings(
 ) -> None:
     first = finish(ledger.submit(inputs), result)
     second = finish(ledger.submit(inputs, purpose=Purpose.REPLICATION), result)
-    left = RecordedRun.from_run(first, job_hash="a" * 64)
-    right = RecordedRun.from_run(second, job_hash="a" * 64)
+    left = RecordedRun.from_run(
+        first, job_hash="a" * 64, duration_metric=Stage.EXECUTION
+    )
+    right = RecordedRun.from_run(
+        second, job_hash="a" * 64, duration_metric=Stage.EXECUTION
+    )
     assert left.source_hash != right.source_hash
 
 
@@ -110,4 +122,35 @@ def test_failure_and_simulated_receipt_cannot_expose_a_successful_score() -> Non
             datetime(2000, 1, 1, tzinfo=UTC),
             recording_hash="b" * 64,
             recorded_result=result,
+        )
+
+
+def test_duration_metric_is_required_and_pool_key_is_part_of_the_hash(
+    ledger: Ledger, inputs, result, finish
+) -> None:
+    run = finish(ledger.submit(inputs), result)
+    with pytest.raises(TypeError):
+        RecordedRun.from_run(run, job_hash="a" * 64)  # pyright: ignore[reportCallIssue]
+    plain = RecordedRun.from_run(
+        run, job_hash="a" * 64, duration_metric=Stage.EXECUTION
+    )
+    pooled = RecordedRun.from_run(
+        run, job_hash="a" * 64, duration_metric=Stage.EXECUTION, pool_key="cand:8m"
+    )
+    assert plain.pool == "a" * 64
+    assert pooled.pool == "cand:8m"
+    assert plain.hash != pooled.hash
+    with pytest.raises(InvalidJobError, match="pool"):
+        replace(plain, pool_key=" ")
+
+
+def test_resampled_flag_must_match_reuse_count() -> None:
+    with pytest.raises(InvalidJobError, match="resampled"):
+        ReplaySnapshot(
+            "mock-1",
+            "a" * 64,
+            State.QUEUED,
+            datetime(2000, 1, 1, tzinfo=UTC),
+            recording_hash="b" * 64,
+            reuse_count=2,
         )

@@ -13,7 +13,7 @@ import fcntl
 import hashlib
 import os
 import signal
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Iterable, Mapping
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -166,6 +166,27 @@ class Supervisor:
             # Shield: cancelling a collector must not cancel the job.
             await asyncio.shield(run.task)
         return run.snapshot
+
+    async def wait_any(self, job_ids: Iterable[str]) -> Snapshot:
+        """Return the terminal snapshot of one job; smallest ID among those done."""
+        ids = sorted(set(job_ids))
+        if not ids:
+            raise InvalidJobError("wait_any requires at least one job ID")
+        runs = [self._run(job_id) for job_id in ids]
+        tasks = {run.task: run for run in runs if run.task is not None}
+        if not any(task.done() for task in tasks):
+            # asyncio.wait never cancels the awaited tasks, so a cancelled
+            # waiter leaves every job running.
+            await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        first = next(run for run in runs if run.task is not None and run.task.done())
+        if first.task is not None and first.task.cancelled():
+            # Cancelled before _drive ran; cancel() publishes the same receipt.
+            if first.snapshot.state in (State.QUEUED, State.RUNNING):
+                first.snapshot = replace(
+                    first.snapshot, state=State.CANCELLED, finished_at=datetime.now(UTC)
+                )
+            return first.snapshot
+        return await self.collect(first.snapshot.job_id)
 
     async def cancel(self, job_id: str) -> Snapshot:
         run = self._run(job_id)

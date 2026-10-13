@@ -59,10 +59,12 @@ class Greedy:
 
 
 @dataclass(frozen=True)
-class Random:
+class RandomSearch:
     """Seeded random priorities for fresh jobs at one declared fidelity.
 
     Priorities depend on full input hashes, not caller order or process state.
+    It ranks exactly the jobs it is given: the caller decides whether the pool
+    holds distinct candidates or replicates of one.
     """
 
     fidelity: str
@@ -95,8 +97,11 @@ class Random:
 class Bandit:
     """UCB1 at one fidelity: mean reward + sqrt(2 log(total pulls) / pulls).
 
-    Raw metric bounds are frozen in advance. Out-of-range evidence is an error,
-    never clipped. Unseen candidates precede measured candidates.
+    Raw metric bounds are frozen in advance. Out-of-range scores are clipped to
+    the bounds, never raised, and the allocation reason counts them. Unseen
+    candidates precede measured candidates. UCB1 minimizes cumulative regret
+    over repeated pulls; it does not identify the best arm, so use it to spend
+    a budget on promising arms, not to certify a winner.
     """
 
     fidelity: str
@@ -121,12 +126,13 @@ class Bandit:
             else (-self.upper, -self.lower)
         )
         rewards: dict[str, list[float]] = {}
+        clipped = 0
         for candidate, values in samples.items():
-            if any(value < lower or value > upper for value in values):
-                raise ContractError(
-                    "Validation metric is outside the frozen reward bounds"
-                )
-            rewards[candidate] = [(value - lower) / (upper - lower) for value in values]
+            clamped = [min(max(value, lower), upper) for value in values]
+            clipped += sum(a != b for a, b in zip(values, clamped, strict=True))
+            rewards[candidate] = [
+                (value - lower) / (upper - lower) for value in clamped
+            ]
         total = sum(len(values) for values in rewards.values())
         indices = {
             candidate: fmean(values)
@@ -145,4 +151,9 @@ class Bandit:
                 ),
             )
         )
-        return select_jobs(snapshot, ordered, self)
+        note = (
+            f"Clipped {clipped} out-of-range scores to the declared bounds."
+            if clipped
+            else ""
+        )
+        return select_jobs(snapshot, ordered, self, note=note)

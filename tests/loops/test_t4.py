@@ -10,10 +10,13 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from openloop.decider import Pair, StagePlan
 from openloop.ledger import (
     Direction,
     InvalidInputError,
+    InvalidTransitionError,
     Ledger,
+    Metric,
     Reproducibility,
     Status,
 )
@@ -21,14 +24,23 @@ from openloop.loops import (
     HPOB,
     ContractError,
     ExperimentEnv,
+    HeldOutEvaluator,
     Job,
     LoopAction,
     NASBench201,
     RunContext,
+    TabularLoop,
 )
+from openloop.loops import tabular_loaders as loaders
 from openloop.loops.files import file_digest
 from openloop.loops.tabular import RecordedOutcome, RecordedTable
-from openloop.loops.tabular_loaders import NASArchitecture, load_nas201, nas201_table
+from openloop.loops.tabular_loaders import (
+    NASArchitecture,
+    load_hpob_held_out,
+    load_nas201,
+    nas201_held_out_table,
+    nas201_table,
+)
 
 
 class TinyArchitecture:
@@ -61,6 +73,40 @@ class TinyNAS:
 
     def query_meta_info_by_index(self, arch_index: int, *, hp: str) -> NASArchitecture:
         return TinyArchitecture(arch_index, int(hp))
+
+
+class HeldOutArchitecture(TinyArchitecture):
+    """Answers only the held-out set for its dataset, and timing from `train`."""
+
+    def __init__(self, index: int, epochs: int, dataset: str, held_out: str) -> None:
+        super().__init__(index, epochs)
+        self.dataset = dataset
+        self.held_out = held_out
+        self.queried: list[str] = []
+
+    def get_dataset_seeds(self, dataset: str) -> list[int]:
+        return [777, 888] if self.epochs == 200 else [777]
+
+    def get_metrics(
+        self, dataset: str, setname: str, *, is_random: int
+    ) -> Mapping[str, object]:
+        assert dataset == self.dataset
+        assert setname in {self.held_out, "train"}, setname
+        return {"accuracy": 60 + self.index - self.epochs / 100, "all_time": 1.0}
+
+
+class TinyHeldOutNAS(TinyNAS):
+    def __init__(self, dataset: str, held_out: str) -> None:
+        self.dataset = dataset
+        self.held_out = held_out
+
+    def query_meta_info_by_index(self, arch_index: int, *, hp: str) -> NASArchitecture:
+        return HeldOutArchitecture(arch_index, int(hp), self.dataset, self.held_out)
+
+
+@pytest.fixture(autouse=True)
+def fresh_caches() -> None:
+    loaders.clear_caches()
 
 
 @pytest.fixture
@@ -351,3 +397,240 @@ def test_invalid_hpob_tables_are_rejected(tmp_path: Path, task) -> None:
     )
     with pytest.raises(ContractError):
         HPOB.load(tmp_path, "space", "task")
+
+
+@pytest.mark.parametrize(
+    ("dataset", "held_out"),
+    [
+        ("cifar10-valid", "ori-test"),
+        ("cifar100", "x-test"),
+        ("ImageNet16-120", "x-test"),
+    ],
+)
+def test_nas_held_out_set_per_dataset_and_selection_rejects_it(
+    dataset: str, held_out: str
+) -> None:
+    table = nas201_held_out_table(
+        TinyHeldOutNAS(dataset, held_out),
+        dataset=dataset,
+        artifact_hash="a" * 64,
+        dependencies_hash="b" * 64,
+    )
+    assert table.held_out
+    assert table.metric_split == "held_out"
+    assert table.provenance["score_split"] == held_out
+    assert table.lookup(0, "12", 777).score == 60 - 0.12
+    with pytest.raises(ContractError, match="HeldOutEvaluator"):
+        NASBench201(table)
+    with pytest.raises(ContractError, match="HeldOutEvaluator"):
+        TabularLoop(table)
+
+
+def test_validation_table_never_requests_held_out_sets(
+    nas_table: RecordedTable,
+) -> None:
+    assert not nas_table.held_out
+    assert nas_table.provenance["score_split"] == "x-valid"
+    assert nas_table.metric_split == "validation"
+
+
+def _held_out_setup(ledger: Ledger, nas_table: RecordedTable):
+    held = nas201_held_out_table(
+        TinyHeldOutNAS("cifar10-valid", "ori-test"),
+        dataset="cifar10-valid",
+        artifact_hash="a" * 64,
+        dependencies_hash="b" * 64,
+    )
+    selection = NASBench201(nas_table)
+    baseline = {"architecture_index": 0}
+    chosen = {"architecture_index": 1}
+    evaluator = HeldOutEvaluator(
+        held,
+        selection,
+        ledger,
+        baseline=baseline,
+        candidates={selection.spec.candidate_hash(chosen): chosen},
+    )
+    plan = StagePlan(
+        evaluator.baseline_template(environment_hash="c" * 64, fidelity="200"),
+        Metric(0, "percent", Direction.MAXIMIZE, split="held_out"),
+        (777, 888),
+        metric_name="validation_score",
+    )
+    return selection, evaluator, plan, chosen
+
+
+def test_held_out_evaluator_scores_once_as_final_evaluator(
+    nas_table: RecordedTable, ledger: Ledger
+) -> None:
+    selection, evaluator, plan, chosen = _held_out_setup(ledger, nas_table)
+    candidate = selection.spec.candidate_hash(chosen)
+    # The decider's candidate identity is unchanged by the split.
+    assert plan.template.candidate_hash == selection.spec.candidate_hash(
+        {"architecture_index": 0}
+    )
+    pairs = asyncio.run(evaluator(candidate, plan))
+    assert len(pairs) == 2
+    assert all(isinstance(pair, Pair) for pair in pairs)
+    assert [pair.baseline.inputs.seed for pair in pairs] == [777, 888]
+    # Held-out scores: 60 + index - 200 / 100; the selection table is untouched.
+    assert [pair.baseline.metric.value for pair in pairs] == [58, 58]
+    assert [pair.candidate.metric.value for pair in pairs] == [59, 59]
+    assert {pair.candidate.metric.split for pair in pairs} == {"held_out"}
+    assert pairs[0].candidate.inputs.candidate_hash == candidate
+    runs = ledger.query()
+    assert len(runs) == 4
+    assert {run.inputs.phase for run in runs} == {"held_out"}
+    assert {run.inputs.data_hash for run in runs} == {evaluator.spec.data_hash}
+    assert evaluator.spec.data_hash != selection.spec.data_hash
+    with pytest.raises(InvalidTransitionError, match="read once"):
+        asyncio.run(evaluator(candidate, plan))
+
+
+def test_held_out_evaluator_rejects_mismatched_inputs(
+    nas_table: RecordedTable, ledger: Ledger
+) -> None:
+    selection, evaluator, plan, chosen = _held_out_setup(ledger, nas_table)
+    candidate = selection.spec.candidate_hash(chosen)
+    with pytest.raises(ContractError, match="requires a held-out table"):
+        HeldOutEvaluator(
+            nas_table,
+            selection,
+            ledger,
+            baseline={"architecture_index": 0},
+            candidates={},
+        )
+    with pytest.raises(ContractError, match="does not match its configuration"):
+        HeldOutEvaluator(
+            evaluator._table,
+            selection,
+            ledger,
+            baseline={"architecture_index": 0},
+            candidates={"f" * 64: chosen},
+        )
+    selection_data = replace(plan.template, data_hash=selection.spec.data_hash)
+    forged = replace(plan, template=selection_data)
+    with pytest.raises(ContractError, match="differs from the frozen held-out task"):
+        asyncio.run(evaluator(candidate, forged))
+    assert ledger.query() == ()
+
+
+def test_held_out_evaluator_requires_the_same_candidates(
+    hpob_data: Path, nas_table: RecordedTable, ledger: Ledger
+) -> None:
+    selection = NASBench201(nas_table)
+    fewer = nas201_held_out_table(
+        TinyHeldOutNAS("cifar10-valid", "ori-test"),
+        dataset="cifar10-valid",
+        artifact_hash="a" * 64,
+        dependencies_hash="b" * 64,
+    )
+    other = replace(
+        fewer,
+        candidates=("changed", "architecture 1"),
+        outcomes=fewer.outcomes,
+    )
+    with pytest.raises(ContractError, match="candidates differ"):
+        HeldOutEvaluator(
+            other, selection, ledger, baseline={"architecture_index": 0}, candidates={}
+        )
+
+
+def _write_hpob(directory: Path, names: tuple[str, ...]) -> Path:
+    data = directory / "hpob/hpob-data"
+    data.mkdir(parents=True)
+    task = {"X": [[0.0, 1.0], [0.25, 0.5], [1.0, 0.0]], "y": [[0.2], [0.5], [0.8]]}
+    files = []
+    for name in names:
+        path = data / name
+        path.write_text(json.dumps({"space": {"task": task}}))
+        files.append(
+            {
+                "path": f"data/tabular/hpob/hpob-data/{name}",
+                "size_bytes": path.stat().st_size,
+                "sha256": file_digest(path),
+            }
+        )
+    (directory / "manifest.json").write_text(
+        json.dumps({"hpob_extracted_files": files})
+    )
+    return directory
+
+
+def test_hpob_meta_test_only_through_the_held_out_loader(
+    tmp_path: Path, ledger: Ledger
+) -> None:
+    root = _write_hpob(
+        tmp_path, ("meta-validation-dataset.json", "meta-test-dataset.json")
+    )
+    with pytest.raises(InvalidInputError, match="HPO-B meta-split"):
+        HPOB.load(root, "space", "task", split="test")
+    held = load_hpob_held_out(root, "space", "task")
+    assert held.held_out
+    assert held.provenance["score_split"] == "meta-test"
+    with pytest.raises(ContractError, match="HeldOutEvaluator"):
+        HPOB(held)
+    selection = HPOB.load(root, "space", "task")
+    assert selection.spec.data_hash != held.hash
+    config = {"configuration_index": 2}
+    evaluator = HeldOutEvaluator(
+        held,
+        selection,
+        ledger,
+        baseline={"configuration_index": 0},
+        candidates={selection.spec.candidate_hash(config): config},
+    )
+    plan = StagePlan(
+        evaluator.baseline_template(environment_hash="c" * 64),
+        Metric(0, "normalized response", Direction.MAXIMIZE, split="held_out"),
+        (0,),
+        metric_name="validation_score",
+    )
+    (pair,) = asyncio.run(evaluator(selection.spec.candidate_hash(config), plan))
+    assert pair.baseline.metric.value == 0
+    assert pair.candidate.metric.value == 1
+
+
+def test_loaders_cache_by_artifact_and_reread_after_change(
+    hpob_data: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    parses = 0
+    real = json.loads
+
+    def counting(data, *args, **kwargs):
+        nonlocal parses
+        parses += isinstance(data, bytes)  # split files; manifests are read as text
+        return real(data, *args, **kwargs)
+
+    hashes = 0
+    real_digest = loaders.file_digest
+
+    def counting_digest(path: Path) -> str:
+        nonlocal hashes
+        hashes += 1
+        return real_digest(path)
+
+    monkeypatch.setattr(loaders.json, "loads", counting)
+    monkeypatch.setattr(loaders, "file_digest", counting_digest)
+    first = HPOB.load(hpob_data, "space", "task")
+    again = HPOB.load(hpob_data, "space", "task")
+    other = HPOB.load(hpob_data, "space", "other")
+    assert first.spec.data_hash == again.spec.data_hash
+    assert other.spec.data_hash != first.spec.data_hash
+    # The split parsed once for three loads, and the file hashed once.
+    assert parses == 1
+    assert hashes == 1
+    path = hpob_data / "hpob/hpob-data/meta-validation-dataset.json"
+    path.write_text("changed")
+    with pytest.raises(ContractError, match="artifact changed"):
+        HPOB.load(hpob_data, "space", "task")
+
+
+def test_seeds_use_a_prebuilt_map_and_fidelities_are_not_seed_paired(
+    nas_table: RecordedTable,
+) -> None:
+    assert nas_table.seeds(0, "12") == (777,)
+    assert nas_table.seeds(0, "200") == (777, 888)
+    assert nas_table.seeds(5, "12") == ()
+    # Recorded seed sets differ by fidelity, so a seed is not a matched pair.
+    assert set(nas_table.seeds(0, "12")) != set(nas_table.seeds(0, "200"))

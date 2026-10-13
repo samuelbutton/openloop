@@ -29,6 +29,7 @@ from openloop.ledger.validation import (
 class Policy(StrEnum):
     NOISE_AWARE = "noise_aware"
     AUTOSCIENTISTS = "autoscientists"
+    ALLOCATOR = "allocator"
 
 
 class ConfirmationScope(StrEnum):
@@ -76,6 +77,9 @@ POLICY_RULES: Mapping[Policy, PolicyRule] = MappingProxyType(
     {
         Policy.NOISE_AWARE: PolicyRule(screen_seeds=2, calibration_pairs=5),
         Policy.AUTOSCIENTISTS: PolicyRule(screen_seeds=2, calibration_pairs=5),
+        # The screen comes from an allocator run; these counts only keep the
+        # declared screen plan and noise context the same shape as other policies.
+        Policy.ALLOCATOR: PolicyRule(screen_seeds=2, calibration_pairs=5),
     }
 )
 
@@ -287,6 +291,8 @@ class Protocol:
             raise InvalidInputError(
                 "The AutoScientists policy keeps its published 2-sigma gate"
             )
+        if self.policy is Policy.ALLOCATOR and margin != DEFAULT_SCREEN_MARGIN_SIGMAS:
+            raise InvalidInputError("The allocator policy has no screen margin")
         object.__setattr__(self, "screen_margin_sigmas", margin)
         scope = coerce_enum(
             ConfirmationScope, self.confirmation_scope, "confirmation scope"
@@ -295,6 +301,8 @@ class Protocol:
         if self.confirm_top_k is not None:
             if scope is not ConfirmationScope.SCREENED:
                 raise InvalidInputError("A top-k limit requires the screened scope")
+            if self.policy is Policy.ALLOCATOR:
+                raise InvalidInputError("An allocator screen supplies no ranking")
             if type(self.confirm_top_k) is not int or self.confirm_top_k < 1:
                 raise InvalidInputError("A top-k limit must be a positive integer")
         rule = POLICY_RULES[self.policy]

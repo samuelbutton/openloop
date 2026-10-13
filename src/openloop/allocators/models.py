@@ -4,21 +4,27 @@ Allocation selects validation work. It neither reserves durable budget nor
 executes jobs or authorizes confirmation and held-out evaluation.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from enum import StrEnum
+from types import MappingProxyType
 from typing import Protocol
 
 from openloop.ledger import Direction, EventKind, Run, Status, content_hash
-from openloop.ledger.validation import check_digest, check_positive
-from openloop.loops import ContractError, Job, LoopAction, LoopSpec, Phase
+from openloop.ledger.validation import check_digest, check_text, coerce_enum
+from openloop.loops import ContractError, Job, LoopSpec, Phase
 
 
 @dataclass(frozen=True)
 class AllocationSnapshot:
     """One loop and environment, offered jobs, and current public ledger evidence.
 
-    Remaining budget excludes work already reserved by the coordinator. Slots
-    are free worker slots. Jobs must come from the trusted workload adapter.
-    Failed inputs need an explicit repair or retry outside this interface.
+    Remaining budget excludes all work the coordinator has already committed:
+    jobs that are queued or running, and the cost of any retry it has queued.
+    Allocators therefore price only jobs that have not started. Slots are free
+    worker slots; zero is valid and yields a NO_SLOTS allocation. Jobs must come
+    from the trusted workload adapter. Failed inputs need an explicit repair or
+    retry outside this interface.
     """
 
     spec: LoopSpec
@@ -34,7 +40,8 @@ class AllocationSnapshot:
         check_digest(self.environment_hash)
         if type(self.remaining_budget) is not int or self.remaining_budget < 0:
             raise ContractError("Remaining budget must be a nonnegative integer")
-        check_positive(self.slots)
+        if type(self.slots) is not int or self.slots < 0:
+            raise ContractError("Free slots must be a nonnegative integer")
         jobs, runs = tuple(self.jobs), tuple(self.runs)
         for job in jobs:
             if not isinstance(job, Job):
@@ -110,25 +117,88 @@ class AllocationSnapshot:
         return tuple(job for job in self.jobs if job.inputs.hash not in seen)
 
 
+class AllocationStatus(StrEnum):
+    """Why an allocation holds the jobs it holds, or none."""
+
+    SELECTED = "selected"
+    DONE = "done"
+    WAITING = "waiting"
+    BLOCKED = "blocked"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+    NO_SLOTS = "no_slots"
+    MISSING_JOBS = "missing_jobs"
+
+
 @dataclass(frozen=True)
 class Allocation:
-    """Ordered jobs and their full declared work cost, in the loop budget unit."""
+    """Ordered jobs, their full declared work cost, and why this is the answer.
+
+    SELECTED holds jobs; every other status holds none. DONE: nothing left for
+    this policy. WAITING: results are pending. BLOCKED: a failed input needs a
+    retry. BUDGET_EXHAUSTED: the remaining budget cannot fund the next step.
+    NO_SLOTS: no free worker slot. MISSING_JOBS: the caller did not offer a job
+    the policy needs. Only DONE is final.
+    """
 
     policy_hash: str
     jobs: tuple[Job, ...]
+    status: AllocationStatus
+    reason: str
 
     def __post_init__(self) -> None:
         check_digest(self.policy_hash)
+        check_text(self.reason)
         jobs = tuple(self.jobs)
         if not all(isinstance(job, Job) for job in jobs):
             raise ContractError("Allocation requires typed jobs")
         if len({job.inputs.hash for job in jobs}) != len(jobs):
             raise ContractError("Allocation cannot repeat inputs")
+        status = coerce_enum(AllocationStatus, self.status, "allocation status")
+        if (status is AllocationStatus.SELECTED) != bool(jobs):
+            raise ContractError("Only a SELECTED allocation holds jobs")
         object.__setattr__(self, "jobs", jobs)
+        object.__setattr__(self, "status", status)
 
     @property
     def work_units(self) -> int:
         return sum(job.inputs.budget_amount for job in self.jobs)
+
+
+@dataclass(frozen=True)
+class ScreenOutcome:
+    """A finished allocator run, stated for use as a decider screen.
+
+    `candidates` is the whole declared pool, `survivors` the subset it kept, and
+    `evidence` the ledger run ids that scored each candidate (empty if never
+    run). `seeds` is every seed the allocator may use. A promotion here is a
+    selection, not a test: confirmation needs fresh seeds outside `seeds`.
+    """
+
+    policy_hash: str
+    candidates: tuple[str, ...]
+    survivors: tuple[str, ...]
+    evidence: Mapping[str, tuple[str, ...]]
+    seeds: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        check_digest(self.policy_hash)
+        candidates, survivors = tuple(self.candidates), tuple(self.survivors)
+        if not set(survivors) <= set(candidates) or len(set(survivors)) != len(
+            survivors
+        ):
+            raise ContractError("Survivors must be unique members of the pool")
+        if set(self.evidence) != set(candidates):
+            raise ContractError("Evidence must cover every pool member")
+        object.__setattr__(self, "candidates", candidates)
+        object.__setattr__(self, "survivors", survivors)
+        object.__setattr__(
+            self,
+            "evidence",
+            MappingProxyType(
+                {key: tuple(value) for key, value in self.evidence.items()}
+            ),
+        )
+        object.__setattr__(self, "seeds", tuple(sorted(set(self.seeds))))
 
 
 class Allocator(Protocol):
@@ -137,30 +207,76 @@ class Allocator(Protocol):
     def select(self, snapshot: AllocationSnapshot) -> Allocation: ...
 
 
+def policy_hash(policy: object) -> str:
+    """Identify a policy by type, version, and every declared parameter."""
+    return content_hash(
+        {
+            "allocator_version": 2,
+            "policy": type(policy).__name__,
+            "parameters": policy,
+        }
+    )
+
+
 def select_jobs(
-    snapshot: AllocationSnapshot, ordered: tuple[Job, ...], policy: object
+    snapshot: AllocationSnapshot,
+    ordered: tuple[Job, ...],
+    policy: object,
+    *,
+    atomic: bool = False,
+    empty: AllocationStatus = AllocationStatus.DONE,
+    note: str = "",
 ) -> Allocation:
-    """Apply shared admission limits to a policy's ordered subset."""
+    """Apply shared admission limits to a policy's ordered subset.
+
+    A non-atomic policy funds each job that fits, in order. An atomic policy
+    funds all of `ordered` or none of it, so a unit of work that is useful only
+    when complete never starts without the budget to finish it. `empty` and
+    `note` explain an empty `ordered` and add detail to any reason.
+    """
     eligible = {job.inputs.hash: job for job in snapshot.eligible}
-    remaining = snapshot.remaining_budget
-    selected: list[Job] = []
     for job in ordered:
         if eligible.pop(job.inputs.hash, None) != job:
             raise ContractError("Policy returned an ineligible or duplicate job")
+    identity = policy_hash(policy)
+    detail = f" {note}" if note else ""
+    if not ordered:
+        return Allocation(identity, (), empty, (note or f"No work: {empty.value}"))
+    if snapshot.slots == 0:
+        return Allocation(
+            identity, (), AllocationStatus.NO_SLOTS, f"No free slots.{detail}"
+        )
+    remaining = snapshot.remaining_budget
+    if atomic:
+        cost = sum(job.inputs.budget_amount for job in ordered)
+        if cost > remaining:
+            return Allocation(
+                identity,
+                (),
+                AllocationStatus.BUDGET_EXHAUSTED,
+                f"The step needs {cost} work units and {remaining} remain; "
+                f"none started.{detail}",
+            )
+    selected: list[Job] = []
+    for job in ordered:
         if job.inputs.budget_amount <= remaining:
             selected.append(job)
             remaining -= job.inputs.budget_amount
             if len(selected) == snapshot.slots:
                 break
+    if not selected:
+        return Allocation(
+            identity,
+            (),
+            AllocationStatus.BUDGET_EXHAUSTED,
+            f"No offered job fits the {snapshot.remaining_budget} remaining "
+            f"work units.{detail}",
+        )
     return Allocation(
-        content_hash(
-            {
-                "allocator_version": 1,
-                "policy": type(policy).__name__,
-                "parameters": policy,
-            }
-        ),
+        identity,
         tuple(selected),
+        AllocationStatus.SELECTED,
+        f"Selected {len(selected)} of {len(ordered)} ranked jobs.{detail}",
     )
 
 
@@ -170,16 +286,6 @@ def utility(snapshot: AllocationSnapshot, run: Run) -> float:
         raise ContractError("A score requires a completed result")
     value = run.result.metrics[snapshot.spec.metric_name].value
     return value if snapshot.spec.direction is Direction.MAXIMIZE else -value
-
-
-def check_rungs(spec: LoopSpec, rungs: tuple[LoopAction, ...]) -> None:
-    """Require increasing declared fidelities with explicit screen seeds."""
-    previous = 0
-    for rung in rungs:
-        amount = spec.fidelity(rung.fidelity).amount
-        if amount <= previous:
-            raise ContractError("Rung fidelities must strictly increase")
-        previous = amount
 
 
 def check_seed(seed: int) -> None:

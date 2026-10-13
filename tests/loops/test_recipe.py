@@ -3,6 +3,7 @@
 import ast
 import hashlib
 import json
+import re
 from collections.abc import Mapping
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,13 +12,31 @@ from typing import Protocol, runtime_checkable
 import numpy as np
 import pytest
 
+from openloop.ledger import content_hash
 from openloop.loops import T1, ContractError, LoopAction, TrainingSource
-from openloop.loops.recipe import RECIPE_HASHES, shared_training
-from openloop.loops.t1_report import generate_programs
+from openloop.loops.recipe import (
+    EXPECTED_REWRITES,
+    RECIPE_HASHES,
+    RECIPE_REVISION,
+    SHARED_RECIPE,
+    SHARED_TRAIN_SHA256,
+    shared_training,
+)
+from openloop.loops.t1 import (
+    FIDELITIES,
+    UPSTREAM_HASHES,
+    UPSTREAM_REVISION,
+)
+from openloop.loops.t1_report import (
+    REPORT_SEED,
+    REPORT_TOKENIZER_DIR,
+    generate_programs,
+)
 from openloop.loops.training import baseline_config
 
 ROOT = Path(__file__).parents[2]
 RECIPE = ROOT / "src/openloop/loops/recipes/m4_pro_v1"
+CLONE = ROOT / "research" / "autoresearch-mlx"
 
 
 @runtime_checkable
@@ -163,6 +182,91 @@ def test_frozen_manifest_matches_recipe(source: TrainingSource) -> None:
         assert (
             hashlib.sha256(program.encode()).hexdigest() == expected["program_sha256"]
         )
+
+
+def test_freeze_record_agrees_with_code_constants(source: TrainingSource) -> None:
+    """Every field that code pins must equal its pin; no field is checked by hand."""
+    manifest = json.loads((RECIPE / "freeze.json").read_text())
+    assert manifest["recipe"] == SHARED_RECIPE
+    assert manifest["recipe_revision"] == RECIPE_REVISION
+    assert manifest["recipe_sha256"] == dict(RECIPE_HASHES)
+    assert manifest["train_sha256"] == SHARED_TRAIN_SHA256
+    assert manifest["upstream_revision"] == UPSTREAM_REVISION
+    assert manifest["upstream_sha256"] == dict(UPSTREAM_HASHES)
+    assert manifest["seed"] == REPORT_SEED
+    assert manifest["tokenizer_dir"] == REPORT_TOKENIZER_DIR
+    # Round trip through JSON so tuples compare equal to the stored lists.
+    baseline = json.loads(json.dumps(dict(baseline_config(source.train))))
+    assert manifest["baseline"] == baseline
+    assert [
+        (item["name"], item["training_tokens"], item["expected_updates"])
+        for item in manifest["fidelities"]
+    ] == [
+        (level.name, level.amount, level.amount // baseline["TOTAL_BATCH_SIZE"])
+        for level in FIDELITIES
+    ]
+    assert all(item["compiled"] is True for item in manifest["fidelities"])
+    # The installed package versions are an exact 12-entry lock.
+    assert len(manifest["dependencies"]) == 12
+
+
+def test_freeze_adapter_and_evaluator_hashes_are_informational() -> None:
+    """These hashes cover openloop adapter files, so they change with any adapter edit.
+
+    They record the adapter state at freeze time and are deliberately not compared
+    with the current code. The pinned inputs are the source, recipe, and program
+    hashes above. Later runs report their own adapter hashes in their records.
+    """
+    manifest = json.loads((RECIPE / "freeze.json").read_text())
+    for name in ("adapter_hash", "evaluator_hash"):
+        assert re.fullmatch(r"[0-9a-f]{64}", manifest[name])
+    assert manifest["native_training_executed"] is False  # state at freeze time
+
+
+def test_freeze_record_agrees_with_pinned_upstream_inputs() -> None:
+    try:
+        shared = TrainingSource.load(CLONE)
+    except (FileNotFoundError, ContractError) as error:
+        pytest.skip(f"Pinned upstream clone unavailable at {CLONE}: {error}")
+    manifest = json.loads((RECIPE / "freeze.json").read_text())
+    assert manifest["source_hash"] == shared.hash
+    assert manifest["dependencies_hash"] == content_hash(shared.lock)
+    assert manifest["train_sha256"] == hashlib.sha256(shared.train.encode()).hexdigest()
+
+
+def _recipe_text(name: str) -> str:
+    return (RECIPE / name).read_text()
+
+
+def test_composer_requires_every_rewrite_exactly_once() -> None:
+    train, optimizer = _recipe_text("train_mlx.py.txt"), _recipe_text("muon_mlx.py.txt")
+    composed = shared_training(train, optimizer)
+    assert hashlib.sha256(composed.encode()).hexdigest() == SHARED_TRAIN_SHA256
+    assert all(count >= 1 for count in EXPECTED_REWRITES.values())
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("step > 10", "step > 11"),
+        ("DEPTH = _hp", "DEPTH_ = _hp"),
+        ("PEAK_FLOPS = ", "PEAK_FLOPS_ = "),
+        ("backend=", "backend_="),
+        ("mfu = ", "mfu_ = "),
+        ("from backends.muon_mlx import ", "from muon_mlx import "),
+    ],
+)
+def test_composer_fails_loudly_when_a_pattern_is_missing(old: str, new: str) -> None:
+    train, optimizer = _recipe_text("train_mlx.py.txt"), _recipe_text("muon_mlx.py.txt")
+    assert old in train, "the test must target a pattern that exists upstream"
+    with pytest.raises(ContractError, match="rewrite rules"):
+        shared_training(train.replace(old, new, 1), optimizer)
+
+
+def test_composer_fails_loudly_on_a_surplus_match() -> None:
+    train, optimizer = _recipe_text("train_mlx.py.txt"), _recipe_text("muon_mlx.py.txt")
+    with pytest.raises(ContractError, match="rewrite rules"):
+        shared_training("DEPTH = 8\n" + train, optimizer)
 
 
 @pytest.mark.parametrize("shape", [(2, 3), (3, 2), (2, 2)])

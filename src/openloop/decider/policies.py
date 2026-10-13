@@ -69,6 +69,8 @@ def decide(
     if candidate not in protocol.candidates:
         raise InvalidInputError("Candidate is outside the frozen comparison family")
     stage = coerce_enum(DecisionStage, stage, "decision stage")
+    if stage is DecisionStage.SCREEN and protocol.policy is Policy.ALLOCATOR:
+        raise InvalidInputError("An allocator screen is recorded, not decided")
     pairs = tuple(pairs)
     plan = {
         DecisionStage.SCREEN: protocol.screen,

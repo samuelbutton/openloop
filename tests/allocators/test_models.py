@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from openloop.allocators import AllocationSnapshot, Greedy, Random
+from openloop.allocators import AllocationSnapshot, Greedy, RandomSearch
 from openloop.ledger import InvalidInputError, Ledger, Metric, Purpose, Result
 from openloop.loops import T0, ContractError, LoopAction
 
@@ -39,7 +39,7 @@ def test_pending_and_failed_inputs_are_not_selected_or_scored(ledger: Ledger) ->
     state = snapshot(loop, ledger, (pending, failed, fresh), slots=3)
     before = ledger.query()
     assert state.evidence == ()
-    assert Random("1x").select(state).jobs == (fresh,)
+    assert RandomSearch("1x").select(state).jobs == (fresh,)
     assert ledger.query() == before
 
 
@@ -114,7 +114,7 @@ def test_selection_is_bounded_unique_and_independent_of_offer_order(
     loop = T0()
     jobs = tuple(job(loop, index, fidelity="4x") for index in range(6))
     state = AllocationSnapshot(loop.spec, ENVIRONMENT, jobs, (), budget, slots=slots)
-    policy = Random("4x", seed=10)
+    policy = RandomSearch("4x", seed=10)
     allocation = policy.select(state)
     assert allocation.work_units <= budget
     assert len(allocation.jobs) <= slots
