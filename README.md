@@ -88,6 +88,7 @@ source inside Docker. Both expose `submit`, `poll`, `cancel`, and `collect`, wit
 idempotent keys, lifecycle timestamps, resource limits, and hashed logs.
 The sandbox denies network access by default. T1 uses the local executor and one
 shared GPU lane. See the [executor guide](docs/EXECUTORS.md) for trust boundaries.
+The [mock backend](docs/MOCK_EXECUTOR.md) replays recorded outcomes and durations at simulated worker capacity, without executing commands or waiting in real time.
 
 ## Decider
 
