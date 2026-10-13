@@ -1,7 +1,14 @@
-"""Read verified local benchmark artifacts into immutable validation-only tables.
+"""Read verified local benchmark artifacts into immutable tables.
+
+`load_nas201` and `load_hpob` read validation scores only. The held-out scores
+come from the separately named `load_nas201_held_out` and `load_hpob_held_out`;
+`TabularLoop` rejects their tables, and `HeldOutEvaluator` is their only consumer.
 
 NAS legacy pickle loading is restricted to the known official artifact hash.
 HPO-B reads one meta-split JSON. Nothing downloads data or starts model training.
+Verified tables and parsed splits are cached per artifact digest, so repeated
+loads of the same task do not re-read the large files. The cache lives only in
+memory for the life of the process; `clear_caches` empties it.
 """
 
 from __future__ import annotations
@@ -26,7 +33,10 @@ from openloop.ledger.validation import (
 from .files import file_digest
 from .models import ContractError
 from .tabular import (
+    HPOB_HELD_OUT_SPLIT,
     NAS_FIDELITIES,
+    NAS_HELD_OUT_SETS,
+    NAS_SELECTION_SET,
     Benchmark,
     MetaSplit,
     NASDataset,
@@ -36,6 +46,34 @@ from .tabular import (
 
 NAS_ARTIFACT = "NAS-Bench-201-v1_1-096897.pth"
 NAS_SHA256 = "2317a7dc911654322f4f932730a821cf38ecc5b5f1adde0aff26ff6b3f736666"
+
+# A file whose size, modification time and inode are unchanged since it was last
+# hashed is not hashed again. This avoids re-reading 5 GB per load; it detects
+# any in-place edit that changes one of those three attributes.
+type _FileStamp = tuple[str, int, int, int]
+_VERIFIED: dict[_FileStamp, str] = {}
+_NAS_TABLES: dict[tuple[str, str, str, str], RecordedTable] = {}
+_HPOB_TABLES: dict[tuple[str, str, str, str], RecordedTable] = {}
+_HPOB_SPLIT: dict[
+    tuple[str, str], Mapping[str, Mapping[str, Mapping[str, object]]]
+] = {}
+
+
+def clear_caches() -> None:
+    """Forget verified digests, parsed splits, and loaded tables."""
+    _VERIFIED.clear()
+    _NAS_TABLES.clear()
+    _HPOB_TABLES.clear()
+    _HPOB_SPLIT.clear()
+
+
+def _digest(path: Path) -> str:
+    status = path.stat()
+    stamp = (str(path), status.st_size, status.st_mtime_ns, status.st_ino)
+    cached = _VERIFIED.get(stamp)
+    if cached is None:
+        cached = _VERIFIED[stamp] = file_digest(path)
+    return cached
 
 
 def _object(value: object) -> Mapping[str, JSONValue]:
@@ -75,7 +113,7 @@ def _artifact(
     expected = item.get("sha256")
     check_digest(expected)
     assert isinstance(expected, str)
-    if path.stat().st_size != item["size_bytes"] or file_digest(path) != expected:
+    if path.stat().st_size != item["size_bytes"] or _digest(path) != expected:
         raise ContractError("Frozen benchmark artifact changed")
     return path, expected, manifest
 
@@ -89,11 +127,41 @@ def load_hpob(
 ) -> RecordedTable:
     """Load one task, preserving the original meta-split and row ordering."""
     split = coerce_enum(MetaSplit, split, "HPO-B meta-split")
+    name = f"meta-{'train' if split is MetaSplit.TRAIN else 'validation'}-dataset.json"
+    return _hpob_table(data_root, name, str(split), search_space, dataset)
+
+
+def load_hpob_held_out(
+    data_root: Path, search_space: str, dataset: str
+) -> RecordedTable:
+    """Load one meta-test task. Only `HeldOutEvaluator` may consume the result.
+
+    This is the sole function that opens the meta-test file.
+    """
+    return _hpob_table(
+        data_root, "meta-test-dataset.json", "test", search_space, dataset
+    )
+
+
+def _hpob_table(
+    data_root: Path, name: str, split: str, search_space: str, dataset: str
+) -> RecordedTable:
     for label in (search_space, dataset):
         check_text(label)
-    name = f"meta-{'train' if split is MetaSplit.TRAIN else 'validation'}-dataset.json"
     path, digest, _ = _artifact(data_root, "hpob_extracted_files", name)
-    tables = json.loads(path.read_bytes())
+    key = (str(path), digest, search_space, dataset)
+    cached = _HPOB_TABLES.get(key)
+    if cached is not None:
+        return cached
+    # Only the most recent split stays parsed: a 346 MB file is several GB in memory.
+    split_key = (str(path), digest)
+    tables = _HPOB_SPLIT.get(split_key)
+    if tables is None:
+        tables = json.loads(path.read_bytes())
+        if _digest(path) != digest:
+            raise ContractError("HPO-B data changed during loading")
+        _HPOB_SPLIT.clear()
+        _HPOB_SPLIT[split_key] = tables
     try:
         task = tables[search_space][dataset]
     except KeyError:
@@ -124,17 +192,18 @@ def load_hpob(
     lower, upper = min(scores), max(scores)
     if lower == upper:
         raise ContractError("HPO-B response normalization needs a nonconstant task")
-    if file_digest(path) != digest:
-        raise ContractError("HPO-B data changed during loading")
-    return RecordedTable(
+    provenance: dict[str, JSONValue] = {
+        "artifact_sha256": digest,
+        "meta_split": split,
+        "search_space": search_space,
+        "dataset": dataset,
+        "normalization": "(y - task_min) / (task_max - task_min)",
+    }
+    if split == "test":
+        provenance["score_split"] = HPOB_HELD_OUT_SPLIT
+    table = RecordedTable(
         Benchmark.HPOB,
-        {
-            "artifact_sha256": digest,
-            "meta_split": str(split),
-            "search_space": search_space,
-            "dataset": dataset,
-            "normalization": "(y - task_min) / (task_max - task_min)",
-        },
+        provenance,
         content_hash({"dependencies": "Python standard library"}),
         tuple(candidates),
         tuple(
@@ -142,6 +211,8 @@ def load_hpob(
             for index, value in enumerate(scores)
         ),
     )
+    _HPOB_TABLES[key] = table
+    return table
 
 
 @runtime_checkable
@@ -169,7 +240,30 @@ def nas201_table(
     dependencies_hash: str,
 ) -> RecordedTable:
     """Snapshot validation outcomes from an already loaded trusted official API."""
+    return _nas_table(api, dataset, artifact_hash, dependencies_hash, held_out=False)
+
+
+def nas201_held_out_table(
+    api: NASReader,
+    *,
+    dataset: NASDataset | str,
+    artifact_hash: str,
+    dependencies_hash: str,
+) -> RecordedTable:
+    """Snapshot held-out outcomes: `ori-test` for cifar10-valid, else `x-test`."""
+    return _nas_table(api, dataset, artifact_hash, dependencies_hash, held_out=True)
+
+
+def _nas_table(
+    api: NASReader,
+    dataset: NASDataset | str,
+    artifact_hash: str,
+    dependencies_hash: str,
+    *,
+    held_out: bool,
+) -> RecordedTable:
     dataset = coerce_enum(NASDataset, dataset, "NAS validation dataset")
+    score_set = NAS_HELD_OUT_SETS[dataset] if held_out else NAS_SELECTION_SET
     check_digest(artifact_hash)
     candidates: list[JSONValue] = []
     outcomes: list[RecordedOutcome] = []
@@ -179,7 +273,7 @@ def nas201_table(
             architecture = api.query_meta_info_by_index(index, hp=fidelity.name)
             for seed in architecture.get_dataset_seeds(str(dataset)):
                 metrics = architecture.get_metrics(
-                    str(dataset), "x-valid", is_random=seed
+                    str(dataset), score_set, is_random=seed
                 )
                 training = architecture.get_metrics(
                     str(dataset), "train", is_random=seed
@@ -201,7 +295,7 @@ def nas201_table(
         {
             "artifact_sha256": artifact_hash,
             "dataset": str(dataset),
-            "score_split": "x-valid",
+            "score_split": score_set,
             "seed_selection": "exact recorded seed",
         },
         dependencies_hash,
@@ -214,10 +308,30 @@ def load_nas201(
     data_root: Path, *, dataset: NASDataset | str = NASDataset.CIFAR10
 ) -> RecordedTable:
     """Load x-valid scores and train timing for each exact recorded seed."""
+    return _load_nas(data_root, dataset, held_out=False)
+
+
+def load_nas201_held_out(
+    data_root: Path, *, dataset: NASDataset | str = NASDataset.CIFAR10
+) -> RecordedTable:
+    """Load held-out scores. Only `HeldOutEvaluator` may consume the result.
+
+    Uses `ori-test` for cifar10-valid and `x-test` for cifar100 and ImageNet16-120.
+    """
+    return _load_nas(data_root, dataset, held_out=True)
+
+
+def _load_nas(
+    data_root: Path, dataset: NASDataset | str, *, held_out: bool
+) -> RecordedTable:
     dataset = coerce_enum(NASDataset, dataset, "NAS validation dataset")
     path, digest, manifest = _artifact(data_root, "downloads", NAS_ARTIFACT)
     if digest != NAS_SHA256:
         raise ContractError("Legacy NAS loading requires the known official artifact")
+    key = (str(path), digest, str(dataset), "held-out" if held_out else "validation")
+    cached = _NAS_TABLES.get(key)
+    if cached is not None:
+        return cached
     packages = {}
     for name in ("nas-bench-201", "torch"):
         try:
@@ -254,9 +368,12 @@ def load_nas201(
         raise ContractError("NAS-Bench-201 must contain 15,625 architectures")
     if file_digest(path) != digest:
         raise ContractError("NAS data changed during loading")
-    return nas201_table(
+    build = nas201_held_out_table if held_out else nas201_table
+    table = build(
         api,
         dataset=dataset,
         artifact_hash=digest,
         dependencies_hash=dependencies,
     )
+    _NAS_TABLES[key] = table
+    return table

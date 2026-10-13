@@ -4,7 +4,7 @@ from dataclasses import replace
 
 import pytest
 
-from openloop.allocators import Bandit, Greedy, Random
+from openloop.allocators import Bandit, Greedy, RandomSearch
 from openloop.ledger import Direction, InvalidInputError, Ledger
 from openloop.loops import T0, ContractError
 
@@ -59,11 +59,19 @@ def test_ucb_honors_metric_direction(ledger: Ledger, direction: Direction) -> No
     assert Bandit("1x", 0, 1).select(snapshot(loop, ledger, offers)).jobs == (winner,)
 
 
-def test_ucb_rejects_out_of_range_evidence(ledger: Ledger) -> None:
+def test_ucb_clips_out_of_range_scores_and_says_so(ledger: Ledger) -> None:
     loop = T0()
     complete(ledger, loop.spec, job(loop, 0), 2)
-    with pytest.raises(ContractError, match="bounds"):
-        Bandit("1x", 0, 1).select(snapshot(loop, ledger, (job(loop, 0, seed=1),)))
+    complete(ledger, loop.spec, job(loop, 1), 1)
+    offers = (job(loop, 0, seed=1), job(loop, 1, seed=1))
+    allocation = Bandit("1x", 0, 1).select(snapshot(loop, ledger, offers, slots=2))
+    # A score of 2 is clipped to the bound 1, so it ties a score of exactly 1.
+    assert {item.inputs.hash for item in allocation.jobs} == {
+        item.inputs.hash for item in offers
+    }
+    assert "Clipped 1 out-of-range" in allocation.reason
+    inside = Bandit("1x", 0, 2).select(snapshot(loop, ledger, offers, slots=2))
+    assert "Clipped" not in inside.reason
 
 
 def test_random_seed_changes_selection_and_policy_identity(ledger: Ledger) -> None:
@@ -71,15 +79,15 @@ def test_random_seed_changes_selection_and_policy_identity(ledger: Ledger) -> No
     state = snapshot(
         loop, ledger, tuple(job(loop, index) for index in range(12)), slots=12
     )
-    first = Random("1x", seed=1).select(state)
-    second = Random("1x", seed=2).select(state)
+    first = RandomSearch("1x", seed=1).select(state)
+    second = RandomSearch("1x", seed=2).select(state)
     assert first.jobs != second.jobs
     assert first.policy_hash != second.policy_hash
     assert first.policy_hash != Greedy("1x").select(state).policy_hash
 
 
 @pytest.mark.parametrize(
-    "policy", [Greedy("unknown"), Random("unknown"), Bandit("unknown", 0, 1)]
+    "policy", [Greedy("unknown"), RandomSearch("unknown"), Bandit("unknown", 0, 1)]
 )
 def test_unknown_fidelity_is_rejected(ledger: Ledger, policy) -> None:
     with pytest.raises(ContractError, match="Unknown fidelity"):

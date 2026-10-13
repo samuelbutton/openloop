@@ -39,6 +39,10 @@ class RecordedRun:
     duration_seconds is recorded execution time, not queue time. result retains
     original metrics and artifact references, without recreating artifact files.
     Missing duration or outcome must not be replaced with a fabricated default.
+
+    pool_key declares which recordings are interchangeable draws of one
+    candidate, for example candidate plus fidelity but not seed. It defaults to
+    job_hash, which pools only recordings of identical inputs.
     """
 
     job_hash: str
@@ -47,6 +51,7 @@ class RecordedRun:
     state: State
     result: Result | None = field(default=None, kw_only=True)
     error: str | None = field(default=None, kw_only=True)
+    pool_key: str | None = field(default=None, kw_only=True)
 
     def __post_init__(self) -> None:
         _digest(self.job_hash)
@@ -70,20 +75,37 @@ class RecordedRun:
             not isinstance(self.error, str) or not self.error.strip()
         ):
             raise InvalidJobError("A recorded error must be nonempty text")
+        if self.pool_key is not None and (
+            not isinstance(self.pool_key, str) or not self.pool_key.strip()
+        ):
+            raise InvalidJobError("A pool key must be nonempty text")
         object.__setattr__(self, "state", state)
 
     @property
+    def pool(self) -> str:
+        """The declared pool key, or the exact job hash when none is declared."""
+        return self.job_hash if self.pool_key is None else self.pool_key
+
+    @property
     def hash(self) -> str:
-        return content_hash({"replay_version": 1, "recording": self})
+        return content_hash({"replay_version": 2, "recording": self})
 
     @classmethod
     def from_run(
-        cls, run: Run, *, job_hash: str, duration_metric: str | None = None
+        cls,
+        run: Run,
+        *,
+        job_hash: str,
+        duration_metric: str | Stage,
+        pool_key: str | None = None,
     ) -> RecordedRun:
         """Capture a completed ledger attempt; reject cache aliases and unknown time.
 
-        By default use its recorded execution-stage duration. duration_metric
-        selects an explicit seconds observation, such as T1's process_seconds.
+        duration_metric is required because the choices differ. A string names
+        a seconds observation with the execution split, such as T1's
+        process_seconds, which times the training process alone.
+        Stage.EXECUTION selects the execution-stage duration, which can include
+        orchestration overhead around the process. Neither is a default.
         Job binding is a caller assertion; this method cannot reconstruct argv.
         """
         if not isinstance(run, Run) or run.reused_from is not None:
@@ -94,7 +116,7 @@ class RecordedRun:
             raise InvalidJobError("Replay needs a terminal ledger attempt")
         if run.status is Status.SUCCEEDED and run.result is None:
             raise InvalidJobError("A successful attempt requires a recorded result")
-        if duration_metric is not None:
+        if not isinstance(duration_metric, Stage):
             metric = (
                 run.result.observations.get(duration_metric) if run.result else None
             )
@@ -125,6 +147,7 @@ class RecordedRun:
             State.SUCCEEDED if run.status is Status.SUCCEEDED else State.FAILED,
             result=run.result if run.status is Status.SUCCEEDED else None,
             error=reason if isinstance(reason, str) else None,
+            pool_key=pool_key,
         )
 
 
@@ -134,15 +157,29 @@ class ReplaySnapshot(Snapshot):
 
     recorded_result appears only when the recorded outcome completes unchanged.
     It is an old observation, never a new measurement. No logs are fabricated.
+
+    pool_key is the pool the recording was drawn from. reuse_count is how many
+    earlier submissions were served this same recording, and resampled is
+    reuse_count > 0: the result repeats recorded noise instead of adding a new
+    sample. A strict replay always reports reuse_count 0.
     """
 
     recording_hash: str
     recorded_result: Result | None = None
+    pool_key: str | None = None
+    reuse_count: int = 0
+    resampled: bool = False
     simulated: bool = field(default=True, init=False)
 
     def __post_init__(self) -> None:
         super().__post_init__()
         _digest(self.recording_hash)
+        if (
+            type(self.reuse_count) is not int
+            or self.reuse_count < 0
+            or self.resampled != (self.reuse_count > 0)
+        ):
+            raise InvalidJobError("resampled must match a positive reuse count")
         if self.recorded_result is not None and (
             not isinstance(self.recorded_result, Result)
             or self.state is not State.SUCCEEDED

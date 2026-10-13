@@ -10,6 +10,7 @@ import asyncio
 import math
 import os
 import sys
+from collections.abc import Iterable
 from dataclasses import replace
 from pathlib import Path
 
@@ -118,6 +119,9 @@ class LocalExecutor:
 
     async def collect(self, job_id: str) -> Snapshot:
         return await self._supervisor.collect(job_id)
+
+    async def wait_any(self, job_ids: Iterable[str]) -> Snapshot:
+        return await self._supervisor.wait_any(job_ids)
 
     async def cancel(self, job_id: str) -> Snapshot:
         return await self._supervisor.cancel(job_id)

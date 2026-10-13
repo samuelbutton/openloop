@@ -5,17 +5,18 @@ consumes that permission too. This guard is not a durable record or a sandbox:
 the host must isolate held-out data and persist campaign snapshots externally.
 """
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from statistics import fmean
 
 from openloop.ledger import InvalidInputError, InvalidTransitionError
-from openloop.ledger.validation import coerce_enum
+from openloop.ledger.validation import check_text, coerce_enum
 
 from .models import (
     ConfirmationScope,
     Decision,
     DecisionStage,
     Pair,
+    Policy,
     Protocol,
     Sample,
     StagePlan,
@@ -37,6 +38,9 @@ class Campaign:
     refuses confirmation until every screen is resolved, then fixes the set once
     from screen evidence alone (optionally the top k by mean screen gain) and
     tests it at alpha / set size. No confirmation score exists at that moment.
+
+    Under Policy.ALLOCATOR the screen is an allocator run, recorded once per
+    family member by `record_external_screen` before any confirmation.
     """
 
     def __init__(
@@ -144,8 +148,11 @@ class Campaign:
             ),
             key=lambda member: (
                 -fmean(
-                    pair.gain for pair in self._evidence[member, DecisionStage.SCREEN]
-                ),
+                    pair.gain
+                    for pair in self._evidence.get((member, DecisionStage.SCREEN), ())
+                )
+                if self._evidence.get((member, DecisionStage.SCREEN))
+                else 0.0,
                 member,
             ),
         )
@@ -166,6 +173,74 @@ class Campaign:
             )
         self._confirmation_set = tuple(kept)
 
+    def record_external_screen(
+        self,
+        candidate: str,
+        *,
+        promoted: bool,
+        evidence: Sequence[str],
+        seeds: Sequence[int],
+        source: str,
+    ) -> Decision:
+        """Record an allocator's keep-or-drop outcome as this candidate's screen.
+
+        Valid only under Policy.ALLOCATOR, once per family member, before any
+        confirmation. `evidence` references the allocator runs behind the
+        outcome (required to promote), `seeds` is every seed the allocator may
+        use, and `source` identifies the allocation policy. The seeds must not
+        meet any confirmation, held-out, or confirmation-noise seed, so the
+        confirmation evidence stays independent of the selection.
+
+        This is a selection, not a test: it carries no p-value and spends no
+        error budget. Only the later confirmation can promote formally.
+        """
+        if self.protocol.policy is not Policy.ALLOCATOR:
+            raise InvalidTransitionError("Only the allocator policy takes this screen")
+        if (
+            self._closed
+            or self._confirmation_set is not None
+            or any(stage is DecisionStage.CONFIRM for _, stage in self._decisions)
+        ):
+            raise InvalidTransitionError(
+                "An external screen must precede every confirmation"
+            )
+        if candidate not in self.protocol.candidates:
+            raise InvalidInputError("Candidate is outside the frozen comparison family")
+        if (candidate, DecisionStage.SCREEN) in self._decisions:
+            raise InvalidTransitionError("A screen is recorded once per candidate")
+        references = tuple(evidence)
+        used = tuple(seeds)
+        check_text(source)
+        for reference in references:
+            check_text(reference)
+        if promoted and not references:
+            raise InvalidInputError("A promotion needs references to allocator runs")
+        if not used or any(type(seed) is not int or seed < 0 for seed in used):
+            raise InvalidInputError("Declare the allocator's nonnegative integer seeds")
+        reserved = {
+            *self.protocol.confirm.seeds,
+            *self.protocol.held_out.seeds,
+            *self.protocol.confirm_noise_seeds,
+        }
+        if reserved & set(used):
+            raise InvalidInputError(
+                "Allocator seeds must be disjoint from confirmation and held-out seeds"
+            )
+        decision = Decision(
+            self.protocol.hash,
+            candidate,
+            DecisionStage.SCREEN,
+            Verdict.PROMOTE if promoted else Verdict.DISCARD,
+            f"Allocator {source[:12]} "
+            + ("kept the candidate" if promoted else "dropped the candidate")
+            + "; a selection, not a test",
+            references,
+            0,
+        )
+        self._decisions[candidate, DecisionStage.SCREEN] = decision
+        self._evidence[candidate, DecisionStage.SCREEN] = ()
+        return decision
+
     def evaluate(
         self, stage: DecisionStage, candidate: str, pairs: tuple[Pair, ...]
     ) -> Decision:
@@ -177,6 +252,8 @@ class Campaign:
             )
         if candidate not in self.protocol.candidates:
             raise InvalidInputError("Candidate is outside the frozen comparison family")
+        if stage is DecisionStage.SCREEN and self.protocol.policy is Policy.ALLOCATOR:
+            raise InvalidTransitionError("Record an allocator screen instead")
         if (
             stage is DecisionStage.CONFIRM
             and self.protocol.confirmation_scope is ConfirmationScope.SCREENED

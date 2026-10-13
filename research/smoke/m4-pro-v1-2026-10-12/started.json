@@ -1,0 +1,11 @@
+{
+  "started_at": "2026-10-13T00:16:14.119710+00:00",
+  "loop_hash": "ed06014ef00ca23cbb03a810c9703f4c9d7b4fb795fb3ce6029fff2a792a2af2",
+  "hardware": {
+    "chip": "Apple M4 Pro",
+    "ram_bytes": 25769803776,
+    "macos": "26.6.2"
+  },
+  "fidelity": "8m",
+  "seed": 1000
+}

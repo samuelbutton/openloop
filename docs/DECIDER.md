@@ -63,6 +63,7 @@ The baseline estimate is a screening reference, not a bound on every candidate's
 | --- | --- | --- |
 | `noise_aware` | The mean of two paired gains must exceed both the minimum effect and `screen_margin_sigmas` times the per-run noise estimate. | Fresh fixed-count paired sign test. |
 | `autoscientists` | Apply the published 2-sigma gate below. | The same fresh fixed-count paired sign test. |
+| `allocator` | An [allocator](ALLOCATORS.md#screening-for-the-decider) run supplies the screen. See [below](#allocator-screens). | The same fresh fixed-count paired sign test. |
 
 The `noise_aware` screen only saves compute.
 Confirmation carries the error bound.
@@ -147,6 +148,56 @@ The sign test is discrete, so its decision and the two-sided interval need not c
 
 The raw AutoScientists screen has no repeated-search error bound.
 Only the common confirmation layer supplies the bound above.
+
+## Allocator screens
+
+An allocator, such as successive halving, skips most candidates by design.
+The campaign cannot score those skips, so `Policy.ALLOCATOR` records the allocator's end result as the screen.
+The bridge has four rules:
+
+1. **The family is the pool.** `Protocol.candidates` is the full candidate pool.
+   Declare it before allocation starts, and give the allocator the same pool.
+   The protocol hash freezes it.
+2. **The allocator is the screen.** When its run ends, call `Campaign.record_external_screen` once for every family member.
+   Survivors get `promote`, and all other candidates get `discard`, including candidates the allocator never ran.
+   Each call carries `evidence`, the ledger run ids that scored the candidate.
+   A promotion needs at least one reference.
+   A decision from this path has no p-value, no threshold, and zero decider samples.
+3. **Order is enforced.** The call needs `Policy.ALLOCATOR`, a family member, no earlier screen for that candidate, and no confirmation so far.
+   `evaluate` refuses the `screen` stage under this policy.
+4. **Seeds are disjoint.** Each call states every seed the allocator may use.
+   The campaign rejects any overlap with the confirmation, held-out, or confirmation-noise seeds.
+   The allocator seeds may overlap the protocol's `screen` seeds. That plan only declares the screen context under this policy.
+
+`confirm_top_k` is not valid with this policy, because an allocator screen supplies no ranking.
+Let the allocator keep fewer survivors instead: `outcome(snapshot, survivors=k)`.
+Choose `screened` scope to divide alpha by the survivor count.
+Choose `family` scope to divide alpha by the family size.
+Both are valid. `screened` gives a looser per-test threshold whenever the allocator discards candidates, so it has more power.
+`ScreenOutcome` from the allocator package carries the survivors, evidence, and seeds.
+The end-to-end check is [`tests/studies/test_t0_allocator.py`](../tests/studies/test_t0_allocator.py).
+
+### Why the error bound holds
+
+The bound needs three facts.
+The family is fixed before any score exists.
+The survivor set is fixed from allocator evidence only, before any confirmation score exists.
+Each survivor's confirmation seeds are fresh: the allocator never saw them.
+Then, given the survivor set, the confirmation pairs are independent of the selection, and Bonferroni over the survivors (or over the whole family) bounds the chance of any false confirmation by alpha.
+The allocator can pick by any rule, adaptive or noisy, without changing that bound.
+Selection by a rule that sees only other seeds costs power, never validity.
+
+What does not carry over:
+
+- **An allocator promotion is not a test.** It has no p-value and no error rate.
+  Rung ranks are selection steps, and the best of many noisy scores is biased high (the winner's curse).
+- **The bound holds only with fresh seeds.** If confirmation reused an allocator seed on the same input, the same noise draw would influence both stages.
+  The seed check guards this for declared seeds. The host must check that a seed maps to an independent draw.
+- **Shared validation data remains shared.** Screening and confirmation both read the validation split.
+  Fresh seeds do not remove selection effects that come from the split itself.
+  The held-out stage covers that risk.
+- **The pool must be final.** Adding candidates after seeing allocator or confirmation scores needs a new protocol.
+- **Pool members outside every Hyperband bracket are discarded unrun.** Size the pool to the bracket plan.
 
 ## Ledger and campaign use
 

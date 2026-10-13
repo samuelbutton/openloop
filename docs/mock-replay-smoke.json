@@ -1,8 +1,9 @@
 {
-  "schema_version": 1,
-  "date": "2026-10-12",
+  "schema_version": 2,
   "simulated": true,
+  "generator": "python -m openloop.studies.mock_replay_smoke",
   "source_root": "research/s1/run-2026-10-11",
+  "source_receipts_sha256": "ffeb2c70a3e881749fb647465452ecc800b6a3e0f34505587e58487db9b0d532",
   "source_files_sha256": {
     "run-001.json": "abd5bb67aad7b177114f1f84e212752402fec14d79c6f7ea623865acd4c6c215",
     "run-002.json": "2f5ca052711a12ab8674675288e2317ac22ca4f9570d1a956d94bac06368092e",
@@ -76,29 +77,48 @@
     "run-070.json": "98dac0e6be7e2c25e816cd2e50ac551d9d204df58d3a86a552f2d716bbddb88f"
   },
   "recipe": "legacy S1; not the shared starting recipe",
+  "replay": {
+    "mode": "resample",
+    "seed": 0,
+    "pool": "candidate config hash and fidelity; seed is not part of the pool",
+    "duration_metric": "process_seconds"
+  },
   "recording_count": 70,
+  "pool_count": 12,
   "total_recorded_process_seconds": 17060.687930876855,
   "scenarios": [
     {
       "workers": 1,
+      "gpu_lanes": 1,
       "completed_replays": 70,
-      "simulated_elapsed_seconds": 17060.687930876855
+      "simulated_elapsed_seconds": 17051.586499467026,
+      "resampled_submissions": 18,
+      "distinct_recordings_served": 52
     },
     {
       "workers": 10,
+      "gpu_lanes": 10,
       "completed_replays": 70,
-      "simulated_elapsed_seconds": 1868.3390698335133
+      "simulated_elapsed_seconds": 1879.00681383349,
+      "resampled_submissions": 18,
+      "distinct_recordings_served": 52
     },
     {
       "workers": 100,
+      "gpu_lanes": 100,
       "completed_replays": 70,
-      "simulated_elapsed_seconds": 355.53285370767117
+      "simulated_elapsed_seconds": 352.4931487501599,
+      "resampled_submissions": 18,
+      "distinct_recordings_served": 52
     },
     {
       "workers": 10000,
+      "gpu_lanes": 10000,
       "completed_replays": 70,
-      "simulated_elapsed_seconds": 355.53285370767117
+      "simulated_elapsed_seconds": 352.4931487501599,
+      "resampled_submissions": 18,
+      "distinct_recordings_served": 52
     }
   ],
-  "limits": "Identical workers; no transfer, contention, preparation, or evaluation overhead. Outcomes are historical observations, not new measurements."
+  "limits": "Simulated. Identical workers; gpu_lanes per scenario as listed; no transfer, contention, preparation, or evaluation overhead. Resampling reuses recorded noise and cannot create variance beyond the recorded pool. Outcomes are historical observations, not new measurements."
 }

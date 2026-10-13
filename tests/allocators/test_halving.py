@@ -4,13 +4,18 @@ from dataclasses import replace
 
 import pytest
 
-from openloop.allocators import Hyperband, SuccessiveHalving
+from openloop.allocators import (
+    AllocationStatus,
+    Hyperband,
+    Rung,
+    SuccessiveHalving,
+)
 from openloop.ledger import Ledger, Metric, Purpose, Result
 from openloop.loops import T0, ContractError, Fidelity, LoopAction
 
 from .helpers import complete, job, snapshot
 
-RUNGS = (LoopAction(0, "1x"), LoopAction(7, "4x"))
+RUNGS = (Rung("1x", (0,)), Rung("4x", (7,)))
 
 
 def test_halving_waits_for_all_results_then_promotes_only_top_candidates(
@@ -36,9 +41,8 @@ def test_halving_waits_for_all_results_then_promotes_only_top_candidates(
         item.inputs.hash for item in high[2:]
     }
     assert promoted.work_units == 8
-    assert (
-        len(policy.select(snapshot(loop, ledger, offers, budget=7, slots=10)).jobs) == 1
-    )
+    short = policy.select(snapshot(loop, ledger, offers, budget=7, slots=10))
+    assert (short.jobs, short.status) == ((), AllocationStatus.BUDGET_EXHAUSTED)
     assert policy.select(snapshot(loop, ledger, offers, budget=3)).jobs == ()
     for index in (2, 3):
         complete(ledger, loop.spec, high[index], float(index))
@@ -98,7 +102,7 @@ def test_hyperband_runs_distinct_brackets_including_full_fidelity_random_search(
     assert policy.bracket_sizes == (2, 2)
     first, second = policy.brackets(loop.spec)
     assert not set(first.candidates) & set(second.candidates)
-    assert second.rungs == (RUNGS[1],)
+    assert second.rungs == (Rung("4x", (7,)),)
     assert policy.brackets(loop.spec) == replace(
         policy, candidates=tuple(reversed(candidates))
     ).brackets(loop.spec)
@@ -158,7 +162,7 @@ def test_hyperband_geometric_grid_matches_published_bracket_counts() -> None:
             Fidelity("81", 81),
         ),
     )
-    rungs = tuple(LoopAction(0, fidelity.name) for fidelity in spec.fidelities)
+    rungs = tuple(Rung(fidelity.name, (0,)) for fidelity in spec.fidelities)
     candidates = tuple(f"{index:064x}" for index in range(200))
     policy = Hyperband(candidates, rungs)
     assert policy.bracket_sizes == (81, 34, 15, 8, 5)
@@ -176,11 +180,17 @@ def test_invalid_halving_factor_is_rejected(eta) -> None:
 
 @pytest.mark.parametrize(
     "rungs",
-    [(), (LoopAction(0, phase="confirm"),), (LoopAction(0, purpose="replication"),)],
+    [(), (LoopAction(0, "1x"),)],
 )
-def test_invalid_rungs_are_rejected(rungs: tuple[LoopAction, ...]) -> None:
+def test_invalid_rungs_are_rejected(rungs: tuple[Rung, ...]) -> None:
     with pytest.raises(ContractError):
         SuccessiveHalving(("a" * 64,), rungs)
+
+
+@pytest.mark.parametrize("seeds", [(), (1, 1), (-1,), (True,)])
+def test_invalid_rung_seeds_are_rejected(seeds: tuple[int, ...]) -> None:
+    with pytest.raises(ContractError):
+        Rung("1x", seeds)
 
 
 def test_reversed_fidelities_and_small_pool_are_rejected(ledger: Ledger) -> None:

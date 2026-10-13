@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-09",
+  "date": "2026-10-12",
   "check": "compile only; installed versions checked",
   "upstream_revision": "766a25ff22afa799efd8d0aa450a4348e4749df2",
   "upstream_sha256": {
@@ -10,23 +10,53 @@
   "python": "3.12.13",
   "seed": 42,
   "tokenizer_dir": "/frozen/tokenizer",
-  "adapter_hash": "f6c996e0ef730cf20338e88e6fd0ad822910c04a7bc4501c378c1544c17a1651",
+  "adapter_hash": "3084f77a9d9300c0b8ac8222fd995103fb98aa9de76e52c82252f8feb95f6fec",
+  "source_hash": "702c980e4fc33c2cf16f789dcea3e935dfc4e344bdf9822e56fe441bffd25603",
+  "train_sha256": "1a94a62eb8f08bccd3ca57b018da812b2009d733e7f795122ecabadf6ba69c4d",
+  "dependencies_hash": "c6f943a33baa356ccb1a726da99caba058be529abb7754b3a1ade2ce0c067c31",
+  "evaluator_hash": "ba95fdfade91bc0fc2509102baecdeec91699d947f698276ad75aca57a89858d",
+  "baseline": {
+    "ASPECT_RATIO": 64,
+    "HEAD_DIM": 128,
+    "WINDOW_PATTERN": "SSSL",
+    "TOTAL_BATCH_SIZE": 8192,
+    "EMBEDDING_LR": 0.6,
+    "UNEMBEDDING_LR": 0.004,
+    "MATRIX_LR": 0.04,
+    "SCALAR_LR": 0.5,
+    "WEIGHT_DECAY": 0.2,
+    "ADAM_BETAS": [
+      0.8,
+      0.95
+    ],
+    "WARMUP_RATIO": 0.0,
+    "WARMDOWN_RATIO": 0.7,
+    "FINAL_LR_FRAC": 0.0,
+    "DEPTH": 6,
+    "DEVICE_BATCH_SIZE": 4
+  },
+  "recipe": "m4-pro-v1",
   "fidelities": [
     {
       "name": "8m",
       "training_tokens": 8388608,
-      "expected_updates": 128,
-      "program_sha256": "e09fb9e46b8abaf2c69079ecd3b796f3d1eaecfc81dd1b5e205c5fd3cd5bdb4a",
+      "expected_updates": 1024,
+      "program_sha256": "3f660519263da6fe32e433c0265ef004c5e005745c57d61e78e1d01b742b2808",
       "compiled": true
     },
     {
       "name": "21m",
       "training_tokens": 20971520,
-      "expected_updates": 320,
-      "program_sha256": "066b9b56802a2f1df14784b90e79082837bfa83a6933335b129fd08a8bd4e9c1",
+      "expected_updates": 2560,
+      "program_sha256": "71cd2cb5901e060473867c39e890966b12147bbf3bdd9a679ac73906fb948107",
       "compiled": true
     }
   ],
+  "recipe_revision": "1d8377683d9a5b1af14f5933e6f5130c54e94460",
+  "recipe_sha256": {
+    "train_mlx.py.txt": "f53ec5cfee3b768627b02387645f5dca3ba2fec51ae24bf5521854bcba821d52",
+    "muon_mlx.py.txt": "a941fdb060dac1d9a76f5c19bd72b4996e67e3f387a8ee35fc29b173e8d54d38"
+  },
   "dependencies": {
     "certifi": "2026.2.25",
     "charset-normalizer": "3.4.5",

@@ -72,7 +72,7 @@ def test_stages_and_rejected_evidence_do_not_mutate_state(
     assert campaign.selected is None
 
 
-@pytest.mark.parametrize("policy", list(Policy))
+@pytest.mark.parametrize("policy", [Policy.NOISE_AWARE, Policy.AUTOSCIENTISTS])
 def test_both_policies_verify_only_after_selection_closes(policy: Policy) -> None:
     study = T0Study(99, gain=1.0, worsening=3.0, arm=Arm("p", policy=policy))
     low = asyncio.run(study.calibration(DecisionStage.SCREEN))

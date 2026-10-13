@@ -10,7 +10,8 @@ from openloop.allocators import (
     Bandit,
     Greedy,
     Hyperband,
-    Random,
+    RandomSearch,
+    Rung,
     SuccessiveHalving,
 )
 from openloop.ledger import Ledger
@@ -78,11 +79,11 @@ def test_all_policies_execute_through_t0_without_duplicate_work(
         for fidelity, seed in (("1x", 0), ("4x", 1))
     )
     candidates = tuple(job(loop, index).inputs.candidate_hash for index in range(6))
-    rungs = (LoopAction(0, "1x"), LoopAction(1, "4x"))
+    rungs = (Rung("1x", (0,)), Rung("4x", (1,)))
     policies: dict[str, Allocator] = {
         "greedy": Greedy("1x"),
         "bandit": Bandit("1x", 0, 30),
-        "random": Random("1x", seed=42),
+        "random": RandomSearch("1x", seed=42),
         "halving": SuccessiveHalving(candidates, rungs, eta=2),
         "hyperband": Hyperband(candidates, rungs, eta=2, seed=42),
     }
@@ -116,11 +117,11 @@ def test_nas_halving_uses_available_seed_per_fidelity_and_full_work_cost(
     configs = tuple(
         loop.normalize_config({"architecture_index": index}) for index in range(4)
     )
-    rungs = (LoopAction(111, "12"), LoopAction(777, "200"))
+    rungs = (Rung("12", (111,)), Rung("200", (777,)))
     jobs = tuple(
         loop.build_job(loop.spec.inputs(config, action, ENVIRONMENT))
         for config in configs
-        for action in rungs
+        for action in (LoopAction(111, "12"), LoopAction(777, "200"))
     )
     policy = SuccessiveHalving(
         tuple(loop.spec.candidate_hash(config) for config in configs), rungs, eta=2
