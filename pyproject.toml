@@ -24,12 +24,16 @@ benchmarks = [
     "xgboost>=3.4.1",
 ]
 dev = [
+    {include-group = "toolbelt"},
     "hypothesis>=6.168,<7",
     "numpy>=2,<3",
     "pre-commit>=4,<5",
     "pyright>=1.1.414,<2",
     "pytest>=8,<10",
     "ruff>=0.15,<0.16",
+]
+toolbelt = [
+    "mcp>=2,<3",
 ]
 
 [tool.ruff]

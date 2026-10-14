@@ -90,7 +90,7 @@ It does not require a message broker or a distributed database.
 | Implementers | Produce candidate snapshots inside the declared mutable surface. Record repair attempts separately. | N6, N8 |
 | Decision policies | Supply versioned thresholds and calculations through the decider contract. | N2 |
 | Research memory | Derive findings, failed hypotheses, and evidence counts from ledger records. | N7 |
-| Agent toolbelt | Expose ledger queries, run comparisons, hypothesis status, and replication requests through Python and MCP. | N6 |
+| Agent toolbelt | V0 exposes run diffs, validation metric queries, and committed repository maps through Python and MCP stdio. Hypothesis status and replication requests remain planned. | N6 |
 | Researcher UI | Show lineage, measurements, costs, stage times, and pending approvals. Link each conclusion to evidence. | N5, N6 |
 
 The proposer receives research evidence through ledger queries.
