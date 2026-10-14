@@ -146,6 +146,7 @@ def test_v2_migration_preserves_identity_and_cache(
         original = ledger.complete(run.id, result)
     with sqlite3.connect(path) as db:
         db.execute("DROP TABLE activity")
+        db.execute("DROP TABLE derivation")
         db.execute("PRAGMA user_version = 2")
     with Ledger(path, migrate=True) as ledger:
         assert ledger.get(original.id) == original
@@ -165,6 +166,7 @@ def make_v2(path: Path, inputs, result) -> str:
         ledger.complete(run.id, result)
     with sqlite3.connect(path) as db:
         db.execute("DROP TABLE activity")
+        db.execute("DROP TABLE derivation")
         db.execute("PRAGMA user_version = 2")
         db.execute("PRAGMA journal_mode = DELETE")
     return run.id

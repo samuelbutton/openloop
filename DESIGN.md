@@ -98,6 +98,14 @@ Failed runs remain available as diagnostic evidence.
 Only decisions that pass the verification policy can support a verified finding.
 An implementation error does not establish that a hypothesis is false.
 
+[Research memory v0](docs/MEMORY.md) stores positive findings only.
+It reloads successful original runs and replays the closed campaign before publication.
+It requires a protocol registration that predates every comparison run.
+It records the protocol, decisions, effect statistics, the configuration and code change, operator links, evidence links, and simulation markers.
+It uses the public ledger derivation API. A recorded outcome label is insufficient.
+Discarded hypotheses remain operator records; they are not verified negative findings.
+The memory query interface does not add held-out findings to proposer context.
+
 ## Ledger schema
 
 SQLite stores small records and references.
@@ -275,8 +283,11 @@ Those operations do not replace the experiment contract or create a new training
 
 The first implementation is available in `openloop.decider`.
 The [decider guide](docs/DECIDER.md) gives the rules, statistical assumptions, and [simulated T0 power and error evidence](docs/decider-t0.json).
-The coordinator is in memory.
-Durable campaign records and restricted held-out storage remain planned.
+The coordinator is in memory by default.
+An opt-in [campaign journal](docs/MEMORY.md#campaign-journal) records the frozen protocol and each transition as ledger derivations.
+A new process can rebuild the campaign from it, and the held-out permission stays consumed.
+The journal orders records on one trusted ledger. It does not authenticate a coordinator.
+Restricted held-out storage, campaign budgets, and a full `campaign` table remain planned.
 
 The campaign freezes the decision policy before comparison starts.
 The policy declares sample counts, seed schedules, minimum effects, uncertainty calculations, and multiple-comparison rules.
