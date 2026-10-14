@@ -24,7 +24,7 @@ from openloop.ledger import Ledger
 from openloop.loops import T0, ExperimentEnv, LoopAction
 
 def pause():
-    (run,) = ledger.query(status='running')
+    (run,) = ledger.query_all(status='running')
     print(run.id, flush=True)
     signal.pause()
 
@@ -87,7 +87,7 @@ def test_sigkill_preserves_committed_evidence_and_allows_retry(
             assert run_id, "Coordinator exited before committing its stage"
             with Ledger(path) as ledger:
                 interrupted = ledger.get(run_id)
-                before = ledger.query(include_reused=True)
+                before = ledger.query_all(include_reused=True)
                 assert interrupted.status is Status.RUNNING
                 assert interrupted.result is None
                 assert interrupted.events[-1].stage is stage
@@ -103,7 +103,7 @@ def test_sigkill_preserves_committed_evidence_and_allows_retry(
         assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
         assert db.execute("PRAGMA foreign_key_check").fetchall() == []
     with Ledger(path) as ledger:
-        assert ledger.query(include_reused=True) == before
+        assert ledger.query_all(include_reused=True) == before
         assert ledger.get(baseline.id) == baseline
         assert ledger.get(run_id) == interrupted
         # Incomplete work can be referenced, but it is not a successful cache hit.
@@ -111,7 +111,7 @@ def test_sigkill_preserves_committed_evidence_and_allows_retry(
         assert pending.attempt_id == interrupted.attempt_id
         assert pending.status is Status.RUNNING
         assert pending.result is None
-        assert ledger.query(status="succeeded") == (baseline,)
+        assert ledger.query_all(status="succeeded") == (baseline,)
 
         failed = ledger.fail(run_id, "Coordinator terminated by SIGKILL")
         assert failed.status is Status.FAILED
@@ -142,7 +142,7 @@ def test_sigkill_preserves_committed_evidence_and_allows_retry(
         assert cached.work_units == 0
         assert cached.attempt_id == retry.attempt_id
         assert cached.result == retry.result
-        assert len(ledger.query(status="succeeded")) == 2
+        assert len(ledger.query_all(status="succeeded")) == 2
     with sqlite3.connect(path) as db:
         assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
         assert db.execute("PRAGMA foreign_key_check").fetchall() == []

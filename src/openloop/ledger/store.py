@@ -474,16 +474,62 @@ class Ledger:
     def query(
         self,
         *,
+        limit: int,
+        offset: int = 0,
         status: Status | str | None = None,
         experiment_hash: str | None = None,
         candidate_hash: str | None = None,
         purpose: Purpose | str | None = None,
         include_reused: bool = False,
-        limit: int = 100,
-        offset: int = 0,
     ) -> tuple[Run, ...]:
-        """Filter runs with stable pagination; aliases are excluded by default."""
+        """Return one page of matching runs in submission order.
+
+        `limit` is required so that no caller is truncated by a hidden default.
+        A result shorter than `limit` is the last page.
+        Use `query_all` when the caller needs complete evidence.
+        """
         check_positive(limit)
+        return self._select(
+            limit=limit,
+            offset=offset,
+            status=status,
+            experiment_hash=experiment_hash,
+            candidate_hash=candidate_hash,
+            purpose=purpose,
+            include_reused=include_reused,
+        )
+
+    def query_all(
+        self,
+        *,
+        status: Status | str | None = None,
+        experiment_hash: str | None = None,
+        candidate_hash: str | None = None,
+        purpose: Purpose | str | None = None,
+        include_reused: bool = False,
+    ) -> tuple[Run, ...]:
+        """Return every matching run in submission order, in one snapshot."""
+        return self._select(
+            limit=None,
+            offset=0,
+            status=status,
+            experiment_hash=experiment_hash,
+            candidate_hash=candidate_hash,
+            purpose=purpose,
+            include_reused=include_reused,
+        )
+
+    def _select(
+        self,
+        *,
+        limit: int | None,
+        offset: int,
+        status: Status | str | None,
+        experiment_hash: str | None,
+        candidate_hash: str | None,
+        purpose: Purpose | str | None,
+        include_reused: bool,
+    ) -> tuple[Run, ...]:
         if type(offset) is not int or offset < 0:
             raise InvalidInputError("Offset must be a nonnegative integer")
         if status is not None:
@@ -512,7 +558,7 @@ class Ledger:
                     "candidate": candidate_hash,
                     "purpose": purpose,
                     "status": status,
-                    "limit": limit,
+                    "limit": -1 if limit is None else limit,
                     "offset": offset,
                 },
             )

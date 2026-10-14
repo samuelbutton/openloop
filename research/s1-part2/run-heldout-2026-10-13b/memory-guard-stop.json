@@ -1,0 +1,34 @@
+{
+  "observed_at": "2026-10-13T11:18:52.873928+00:00",
+  "reason": "system free memory below 15% for 2 consecutive samples",
+  "run": {
+    "index": 5,
+    "arm": "bc5cdc1",
+    "seed": 3002,
+    "ledger_run_id": "3e7adc66ffaf4529aaa534a7e8940f63"
+  },
+  "readings": [
+    {
+      "observed_at": "2026-10-13T11:18:42.805923+00:00",
+      "pressure_level": 2,
+      "free_percent": 15
+    },
+    {
+      "observed_at": "2026-10-13T11:18:47.829554+00:00",
+      "pressure_level": 2,
+      "free_percent": 14
+    },
+    {
+      "observed_at": "2026-10-13T11:18:52.839817+00:00",
+      "pressure_level": 2,
+      "free_percent": 14
+    }
+  ],
+  "threshold": {
+    "sample_seconds": 5.0,
+    "critical_pressure_level": 4,
+    "free_percent_floor": 15,
+    "free_percent_consecutive_samples": 2
+  },
+  "automatic_retry": false
+}

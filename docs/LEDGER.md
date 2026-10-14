@@ -82,7 +82,8 @@ Use one `Ledger` connection per thread.
 | `submit(inputs, ...)` | Record a hypothesis and parents. Reuse completed results or pending normal work with identical inputs. |
 | `get(run_id)` | Return an immutable snapshot of the submission, attempt, inputs, preparations, events, and result. |
 | `lineage(run_id)` | Return unique ancestors before descendants. Include explicit parents, retry parents, and cache sources. |
-| `query(...)` | Filter by status, input hash, candidate hash, or purpose. Support `limit` and `offset`. Exclude reused submissions by default. |
+| `query_all(...)` | Return every run matching the filters (status, input hash, candidate hash, or purpose) in submission order, from one read snapshot. Exclude reused submissions by default. Use it for any complete-evidence view, such as an allocator snapshot. |
+| `query(limit=..., offset=...)` | Return one page of the same ordered result. `limit` is a required keyword with no default, so a caller can never be truncated by a hidden cap. A page shorter than `limit` is the last. |
 | `record_preparation(run_id, stage, ...)` | Record actual proposal or implementation times for a submission. Reject overlapping stages and unknown timezones. |
 | `start_stage(run_id, stage)` | Close the current stage and start a later stage in one transaction. |
 | `complete(run_id, result)` | Publish trusted typed metrics, artifact hashes, and operational observations. Require execution and evaluation stages. |
@@ -241,3 +242,12 @@ This API is not an agent security boundary or a statistical decider.
 The caller must verify artifact bytes before recording their hashes.
 Artifact bytes and metric-series files remain outside this first ledger implementation.
 Decision records, campaign budgets, worker execution, held-out access control, and migration of setup records remain separate tasks.
+
+### Query design
+
+An earlier `query` defaulted to `limit=100`.
+A caller that wanted all evidence got the first 100 runs without any signal.
+Truncation is therefore an explicit choice now.
+`query_all` is the only unbounded read, and `query` cannot be called without a `limit`.
+Both share one ordering (submission order) and one SQL statement, so pages concatenate to the `query_all` result absent concurrent writes.
+`query_all` reads ids and runs inside one read transaction, so it is a consistent snapshot.

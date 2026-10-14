@@ -1,0 +1,26 @@
+{
+  "observed_at": "2026-10-13T10:30:43.496559+00:00",
+  "source": "coordinator, with explicit owner instruction in chat to stop and re-run for valid results",
+  "reason": "Machine sleep (lid closed) during a wall-clock-budgeted protocol. The published 300 s training budget is measured with wall-clock time, which advanced during sleep and throttled dark-wake periods, so runs ended after far fewer steps than normal.",
+  "evidence": {
+    "run-01 8f00506 s2004": {
+      "steps": 543,
+      "val_bpb": 1.478953
+    },
+    "run-02 1d83776 s3000": {
+      "steps": 506,
+      "val_bpb": 1.501081,
+      "heldout_bpb": 1.506821
+    },
+    "run-03 1d83776 s3001": {
+      "steps": 359,
+      "val_bpb": 1.658052,
+      "heldout_bpb": 1.66406
+    },
+    "normal_steps_reference": "about 843 for 1d83776 and 8f00506 in run-2026-10-13"
+  },
+  "completed_receipts": 4,
+  "validity": "All receipts in this directory are INVALID for analysis (environment event, not outcome-based exclusion). Run 04 also overlapped the sleep window.",
+  "method": "SIGINT then SIGKILL of runner and training worker; monitor stopped",
+  "resume_authorized": false
+}

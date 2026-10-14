@@ -1,0 +1,30 @@
+Could not find platform independent libraries <prefix>
+Python path configuration:
+  PYTHONHOME = (not set)
+  PYTHONPATH = (not set)
+  program name = '/Users/sambutton/code/samuelbutton/openloop/.venv/bin/python3'
+  isolated = 0
+  environment = 1
+  user site = 1
+  safe_path = 0
+  import site = 1
+  is in build tree = 0
+  stdlib dir = '/install/lib/python3.12'
+  sys._base_executable = '/tmp/openloop-python/cpython-3.12.13-macos-aarch64-none/bin/python3.12'
+  sys.base_prefix = '/install'
+  sys.base_exec_prefix = '/tmp/openloop-python/cpython-3.12.13-macos-aarch64-none'
+  sys.platlibdir = 'lib'
+  sys.executable = '/Users/sambutton/code/samuelbutton/openloop/.venv/bin/python3'
+  sys.prefix = '/install'
+  sys.exec_prefix = '/tmp/openloop-python/cpython-3.12.13-macos-aarch64-none'
+  sys.path = [
+    '/install/lib/python312.zip',
+    '/install/lib/python3.12',
+    '/tmp/openloop-python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/lib-dynload',
+  ]
+Fatal Python error: init_fs_encoding: failed to get the Python codec of the filesystem encoding
+Python runtime state: core initialized
+ModuleNotFoundError: No module named 'encodings'
+
+Current thread 0x00000001f30da180 (most recent call first):
+  <no Python frame>

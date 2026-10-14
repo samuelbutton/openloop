@@ -50,7 +50,7 @@ def execute(
     consumed = 0
     for _ in range(len(jobs) + 1):
         state = AllocationSnapshot(
-            loop.spec, ENVIRONMENT, jobs, ledger.query(), budget - consumed, slots=2
+            loop.spec, ENVIRONMENT, jobs, ledger.query_all(), budget - consumed, slots=2
         )
         selected = policy.select(state)
         if not selected.jobs:
@@ -88,7 +88,7 @@ def test_all_policies_execute_through_t0_without_duplicate_work(
         "hyperband": Hyperband(candidates, rungs, eta=2, seed=42),
     }
     consumed = execute(policies[name], loop, ledger, jobs, 100)
-    runs = ledger.query()
+    runs = ledger.query_all()
     assert len({run.inputs.hash for run in runs}) == len(runs)
     assert consumed == sum(run.inputs.budget_amount for run in runs)
     assert consumed == (18 if name == "halving" else 14 if name == "hyperband" else 6)
@@ -129,7 +129,7 @@ def test_nas_halving_uses_available_seed_per_fidelity_and_full_work_cost(
     assert execute(policy, loop, ledger, jobs, 448) == 448
     promoted = {
         run.inputs.candidate_hash
-        for run in ledger.query()
+        for run in ledger.query_all()
         if run.inputs.fidelity == "200"
     }
     assert promoted == {loop.spec.candidate_hash(configs[index]) for index in (2, 3)}

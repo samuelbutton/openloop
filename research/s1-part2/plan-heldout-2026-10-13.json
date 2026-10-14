@@ -1,0 +1,219 @@
+{
+  "plan_hash": "738a84c5bf2b1b1b151221cac36aaf8c1c8ce0ade95f2635b068cc80696732d6",
+  "plan": {
+    "study": "S1 part 2, Amendment 2: seed completion and held-out phase",
+    "parent_plan": {
+      "path": "research/s1-part2/plan-2026-10-13.json",
+      "plan_hash": "5f0badf3342f156eed23b965cb2603da59c7ae6d02a2ec822d242f81a91c9e43",
+      "file_sha256": "f0e5b6276a29b9019e2c50971a80bedd7a8a6b73d88e62764902a170898c536d"
+    },
+    "seed_completion": {
+      "arm": "8f00506",
+      "seed": 2004,
+      "reexecution_of": {
+        "receipt": "research/s1-part2/run-2026-10-13/run-30-8f00506-s2004.json",
+        "receipt_sha256": "bddd938a36e0c20ffb152f7a3155066c2770cb9f6102e8310b7b3f473f1ee06a",
+        "program_sha256": "f451ca2d3ee50b5cd67132cf10a9689e67668fb9f28943b20030efc2c0ce04a9",
+        "failure": "ExecutorError: failed: None",
+        "elapsed_seconds": 0.012209499720484018,
+        "reason": "Python install under /tmp was purged by macOS; environment failure, not an experiment result"
+      },
+      "transform": "none; identical to the October 13 protocol"
+    },
+    "heldout_phase": {
+      "claim": "1d83776 improves on bc5cdc1",
+      "child": "1d83776",
+      "parent": "bc5cdc1",
+      "seeds": [
+        3000,
+        3001,
+        3002,
+        3003,
+        3004
+      ],
+      "confidence": 0.95,
+      "shard": {
+        "file": "shard_05000.parquet",
+        "url": "https://huggingface.co/datasets/karpathy/climbmix-400b-shuffle/resolve/main/shard_05000.parquet",
+        "size_bytes": 91420038,
+        "sha256": "855893202a317b3946bbe21abccf2540843ea2e27e5b3499598e135a1ca41fa9",
+        "manifest_sha256": "6951a1c0a26c467520323158e2c5ee68d21fd256e2eb2b2a5182cf3fa1760ae1",
+        "directory_env": "OPENLOOP_HELDOUT_DIR"
+      },
+      "transform": {
+        "anchor": "the published final evaluate_bpb line, exactly once",
+        "appended_code": "import prepare as _heldout_prepare\n_heldout_prepare.DATA_DIR = os.environ[\"OPENLOOP_HELDOUT_DIR\"]\n_heldout_prepare.VAL_FILENAME = \"shard_05000.parquet\"\nheldout_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE, backend=\"mlx\")\nprint(f\"heldout_bpb:      {heldout_bpb:.6f}\")\n",
+        "appended_code_sha256": "dfd548a07a5dca69e75f50563e51dd6f09e4a770566238e1e669e5a45541955e"
+      }
+    },
+    "arms": {
+      "1d83776": {
+        "file_sha256": {
+          "train_mlx.py": "f53ec5cfee3b768627b02387645f5dca3ba2fec51ae24bf5521854bcba821d52",
+          "prepare.py": "f74ae808d992db1ea86a11c374ae7bdf074ee422cca5510e69ccb2628146f9ce",
+          "backends/__init__.py": "8da786fe82e8ece027fbf4a49dae761bb98fe20079f511f3a38c5ba8e9ed28ba",
+          "backends/muon_mlx.py": "a941fdb060dac1d9a76f5c19bd72b4996e67e3f387a8ee35fc29b173e8d54d38",
+          "backends/muon_mps.py": "ca0b761c9780d4319011b3e7645c35d788caabb7b4096e1d725e44b9b8549120"
+        }
+      },
+      "bc5cdc1": {
+        "file_sha256": {
+          "train_mlx.py": "b7e0037af3e8b6ae9e96beec506c0d798d4d66b8005bae53de26fe704e5f8587",
+          "prepare.py": "f74ae808d992db1ea86a11c374ae7bdf074ee422cca5510e69ccb2628146f9ce",
+          "backends/__init__.py": "8da786fe82e8ece027fbf4a49dae761bb98fe20079f511f3a38c5ba8e9ed28ba",
+          "backends/muon_mlx.py": "a941fdb060dac1d9a76f5c19bd72b4996e67e3f387a8ee35fc29b173e8d54d38",
+          "backends/muon_mps.py": "ca0b761c9780d4319011b3e7645c35d788caabb7b4096e1d725e44b9b8549120"
+        }
+      },
+      "8f00506": {
+        "file_sha256": {
+          "train_mlx.py": "13d6259628dd2214fc4886c4a45d9e26014a091df873d2ff421886ebdce34b04",
+          "prepare.py": "f74ae808d992db1ea86a11c374ae7bdf074ee422cca5510e69ccb2628146f9ce",
+          "backends/__init__.py": "8da786fe82e8ece027fbf4a49dae761bb98fe20079f511f3a38c5ba8e9ed28ba",
+          "backends/muon_mlx.py": "a941fdb060dac1d9a76f5c19bd72b4996e67e3f387a8ee35fc29b173e8d54d38",
+          "backends/muon_mps.py": "ca0b761c9780d4319011b3e7645c35d788caabb7b4096e1d725e44b9b8549120"
+        }
+      }
+    },
+    "shuffle_seed": 20261014,
+    "order": [
+      {
+        "index": 1,
+        "kind": "seed_completion",
+        "arm": "8f00506",
+        "seed": 2004,
+        "base_program_sha256": "f451ca2d3ee50b5cd67132cf10a9689e67668fb9f28943b20030efc2c0ce04a9",
+        "program_sha256": "f451ca2d3ee50b5cd67132cf10a9689e67668fb9f28943b20030efc2c0ce04a9"
+      },
+      {
+        "index": 2,
+        "kind": "heldout",
+        "arm": "1d83776",
+        "seed": 3000,
+        "base_program_sha256": "1f8c62a5a34b6bed83056cc97ea0f16f4866754a6219fa4614f14ea9458a4e60",
+        "program_sha256": "1b5a65731b55db480e9722d714ecaab27d05c1f0e3f0d906a28cdb1764b60bf6"
+      },
+      {
+        "index": 3,
+        "kind": "heldout",
+        "arm": "1d83776",
+        "seed": 3001,
+        "base_program_sha256": "14594f6234c46b3a4f892578f69a85d5af420cf532c3d9e57b35499456947255",
+        "program_sha256": "c63332301464acf7d9a885956cd7dfaf2592acd2a297ae91b5bca3361947dc33"
+      },
+      {
+        "index": 4,
+        "kind": "heldout",
+        "arm": "bc5cdc1",
+        "seed": 3000,
+        "base_program_sha256": "75c3ca910dd4e359dc59df94dd1d536518fb585652f5b44779284b0979c66a09",
+        "program_sha256": "2a62c914486054a48f5d6aa24b54fbf967b1a56b759bbfd4715ce47c54f70966"
+      },
+      {
+        "index": 5,
+        "kind": "heldout",
+        "arm": "bc5cdc1",
+        "seed": 3002,
+        "base_program_sha256": "e679b8d767e1d3528df6d4c0556935e0f3cbf84154acbc2fa93f80d62422485a",
+        "program_sha256": "c455d15096e5095a9d963376b90a205057999ecff6bcfd6c945a825670c483ed"
+      },
+      {
+        "index": 6,
+        "kind": "heldout",
+        "arm": "1d83776",
+        "seed": 3004,
+        "base_program_sha256": "6f44ee9e3b9b9c57aaea00daf6eff8d31dbd817a64f35e77ead3d25b3675b69b",
+        "program_sha256": "45129c906edcf3ffa0a1eda3a794c8ec11b398b5f34d305a01a2158d159b4a35"
+      },
+      {
+        "index": 7,
+        "kind": "heldout",
+        "arm": "1d83776",
+        "seed": 3003,
+        "base_program_sha256": "43c71e76670d1b15cb3cf6b6afaa45de2f89e89d4c3eb406bc4fbaf9cbc8909b",
+        "program_sha256": "220caea948d2b61e398c1c4075a0094ec33e4c9e1ef9c7d47fc9ad4f646ca35e"
+      },
+      {
+        "index": 8,
+        "kind": "heldout",
+        "arm": "bc5cdc1",
+        "seed": 3001,
+        "base_program_sha256": "9eb4512b40125c2d8d1eb98c66d7c7c14bd511152c8f2e3432f680afdd5a2a7c",
+        "program_sha256": "6abd381442fbaa636bd286f2da3022e1b6be307dc0f72e5eea614b1b589b018e"
+      },
+      {
+        "index": 9,
+        "kind": "heldout",
+        "arm": "bc5cdc1",
+        "seed": 3004,
+        "base_program_sha256": "42267c8d99aff5f2221afb640a8af9a45fb31cb2afd4c3d351de0a4fdca2e7f2",
+        "program_sha256": "c081f74fa540632392a2eec6e75a0248dbbc82d3e856ec757ad11cfc1823e7ce"
+      },
+      {
+        "index": 10,
+        "kind": "heldout",
+        "arm": "1d83776",
+        "seed": 3002,
+        "base_program_sha256": "1bf802b62506f807f30ec03413c320ddb1f94a6d878cca9a18f94fa7092a9852",
+        "program_sha256": "fc85bdb1ecda2956079b00a51d2ef75636aa78c70b8003515ad55f9f5f5cab86"
+      },
+      {
+        "index": 11,
+        "kind": "heldout",
+        "arm": "bc5cdc1",
+        "seed": 3003,
+        "base_program_sha256": "23026ecf80fda783d17834c105a6e58ca957684c718f31cafaf794b27e4010a6",
+        "program_sha256": "e132e0e87bee89d5f0d9dc873ae177cb5bb3e9ccac4df9757b0a505074a073fa"
+      }
+    ],
+    "limits": {
+      "wall_seconds_per_job": 1800,
+      "study_wall_seconds": 14400,
+      "memory_bytes": 24696061952,
+      "memory_sample_seconds": 5,
+      "memory_guard": {
+        "sample_seconds": 5.0,
+        "critical_pressure_level": 4,
+        "free_percent_floor": 15,
+        "free_percent_consecutive_samples": 2
+      },
+      "gpu_lanes": 1,
+      "max_consecutive_failures": 3
+    },
+    "environment": {
+      "chip": "Apple M4 Pro",
+      "gpu_cores": 20,
+      "ram_bytes": 25769803776,
+      "runtime": {
+        "python": "3.12.13",
+        "machine": "arm64",
+        "packages": {
+          "mlx": "0.31.0",
+          "mlx-metal": "0.31.0",
+          "numpy": "2.4.2",
+          "pyarrow": "23.0.1",
+          "regex": "2026.2.28",
+          "requests": "2.32.5",
+          "rustbpe": "0.1.0",
+          "tiktoken": "0.12.0"
+        }
+      },
+      "cache_manifest_sha256": "772e5f85444a043242c6588ee3c75a916133f013b500ec51f5029425e3725f50"
+    },
+    "code": {
+      "audit_heldout_script_sha256": "d438fdb63f44e74696ec1372313da781135d9b729929089dcd91d0f4be8c66a7",
+      "heldout_module_sha256": "cd1b17001541197387f2618aca8509192b28a775a39e747905a3b8e1c8cb2376",
+      "audit_script_sha256": "f7d59c4df539c6a71f474b150d966938a08bfde5828ee26af2addfffc21ac808",
+      "analysis_module_sha256": "7fe8504ad8af933a51d4be52b4aa7c5880e5676d4bc97c9063eb96749b149721"
+    },
+    "estimated_runtime": {
+      "per_run_seconds": 420,
+      "basis": "October 13 runs took about 390 s each; the extra evaluation of 5,242,880 tokens is assumed to add under 30 s",
+      "expected_hours": 1.3,
+      "cap_hours": 4
+    }
+  },
+  "prepared_at": "2026-10-13T09:53:59.108562+00:00",
+  "training_runs": 11,
+  "native_training_executed": false
+}

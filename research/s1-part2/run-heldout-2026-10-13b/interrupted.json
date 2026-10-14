@@ -1,0 +1,6 @@
+{
+  "observed_at": "2026-10-13T11:18:52.879541+00:00",
+  "error_type": "MemoryGuardTripped",
+  "reason": "Memory guard tripped: system free memory below 15% for 2 consecutive samples",
+  "successful_runs": 4
+}

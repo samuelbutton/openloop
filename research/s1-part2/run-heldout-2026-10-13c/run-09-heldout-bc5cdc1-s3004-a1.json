@@ -1,0 +1,51 @@
+{
+  "index": 9,
+  "kind": "heldout",
+  "arm": "bc5cdc1",
+  "seed": 3004,
+  "attempt": 1,
+  "base_program_sha256": "42267c8d99aff5f2221afb640a8af9a45fb31cb2afd4c3d351de0a4fdca2e7f2",
+  "program_sha256": "c081f74fa540632392a2eec6e75a0248dbbc82d3e856ec757ad11cfc1823e7ce",
+  "ledger_run_id": "9f58a1245a9a489d97397d9f74bda566",
+  "execution": {
+    "job_id": "b6338ed68cc845e786a5830b516f542e",
+    "input_hash": "a3dc8dd7a3cc1bc98ee26c32ccd152999b9dccfa0ab2e07c2336b63f64dec200",
+    "state": "succeeded",
+    "exit_code": 0,
+    "started_at": "2026-10-13T23:49:46.860763+00:00",
+    "finished_at": "2026-10-13T23:57:21.457310+00:00",
+    "elapsed_seconds": 454.54292633291334,
+    "peak_rss_bytes": 261259264,
+    "error": null,
+    "artifacts": [
+      {
+        "path": "executor/b6338ed68cc845e786a5830b516f542e/stdout",
+        "sha256": "1954152d0866b5029a1d4df48842336b9412e76995d5896ce973e58fa34d1a16",
+        "size_bytes": 54219
+      },
+      {
+        "path": "executor/b6338ed68cc845e786a5830b516f542e/stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      }
+    ]
+  },
+  "summary": {
+    "val_bpb": 1.42379,
+    "training_seconds": 300.3,
+    "total_seconds": 454.4,
+    "peak_vram_mb": 8373.0,
+    "mfu_percent": 15.42,
+    "total_tokens_M": 7.1,
+    "num_steps": 432,
+    "num_params_M": 21.9,
+    "depth": 6,
+    "backend": "mlx",
+    "chip": "Apple M4 Pro",
+    "heldout_bpb": 1.429179
+  },
+  "validity": {
+    "valid": true,
+    "drift_seconds": 0.053690298926085234
+  }
+}

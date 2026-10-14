@@ -89,8 +89,8 @@ def test_cache_reuses_result_without_duplicate_samples(ledger, finish, inputs, r
     assert cached.parents == (parent.id,)
     assert cached.hypothesis == "Same inputs"
     assert cached.result == baseline.result
-    assert len(ledger.query(status="succeeded")) == 1
-    assert len(ledger.query(status="succeeded", include_reused=True)) == 2
+    assert len(ledger.query_all(status="succeeded")) == 1
+    assert len(ledger.query_all(status="succeeded", include_reused=True)) == 2
     assert {run.id for run in ledger.lineage(cached.id)} == {
         baseline.id,
         parent.id,
@@ -135,8 +135,8 @@ def test_atomic_admission_between_connections(tmp_path, inputs):
     assert runs[0].attempt_id == runs[1].attempt_id
     assert sum(run.reused_from is None for run in runs) == 1
     with Ledger(path) as ledger:
-        assert len(ledger.query()) == 1
-        assert len(ledger.query(include_reused=True)) == 2
+        assert len(ledger.query_all()) == 1
+        assert len(ledger.query_all(include_reused=True)) == 2
 
 
 def test_request_key_is_idempotent_and_rejects_conflicts(ledger, inputs):
@@ -146,7 +146,7 @@ def test_request_key_is_idempotent_and_rejects_conflicts(ledger, inputs):
         ledger.submit(replace(inputs, seed=43), request_key="job-1")
     with pytest.raises(ConflictError, match="different inputs"):
         ledger.submit(inputs, hypothesis="New provenance", request_key="job-1")
-    assert len(ledger.query(include_reused=True)) == 1
+    assert len(ledger.query_all(include_reused=True)) == 1
 
 
 def test_retry_preserves_failed_attempt_and_cache_key(ledger, finish, inputs, result):
@@ -197,7 +197,7 @@ def test_lineage_preserves_diamond_and_combined_parents(ledger, inputs):
         assert all(positions[parent] < positions[run.id] for parent in run.parents)
     with pytest.raises(NotFoundError):
         ledger.submit(inputs, parents=("missing",))
-    assert len(ledger.query()) == 4
+    assert len(ledger.query_all()) == 4
 
 
 def test_query_filters_and_pagination(ledger, finish, inputs, result):
@@ -205,25 +205,47 @@ def test_query_filters_and_pagination(ledger, finish, inputs, result):
     failed = ledger.submit(replace(inputs, seed=1))
     ledger.fail(failed.id, "Crash")
     succeeded = finish(ledger.submit(replace(inputs, seed=2)), result)
-    assert ledger.query(status="queued") == (ledger.get(queued.id),)
-    assert ledger.query(status="failed") == (ledger.get(failed.id),)
-    assert ledger.query(experiment_hash=succeeded.inputs.hash) == (succeeded,)
+    assert ledger.query_all(status="queued") == (ledger.get(queued.id),)
+    assert ledger.query_all(status="failed") == (ledger.get(failed.id),)
+    assert ledger.query_all(experiment_hash=succeeded.inputs.hash) == (succeeded,)
     assert ledger.query(limit=1, offset=1)[0].id == failed.id
-    assert ledger.query(status="succeeded", purpose="replication") == ()
+    assert ledger.query(limit=10) == ledger.query_all()
+    assert ledger.query_all(status="succeeded", purpose="replication") == ()
     with pytest.raises(InvalidInputError):
-        ledger.query(status="finished")
+        ledger.query_all(status="finished")
     with pytest.raises(InvalidInputError):
-        ledger.query(purpose="sample")
+        ledger.query_all(purpose="sample")
+
+
+def test_query_all_returns_more_than_the_old_default_page(ledger, inputs):
+    count = 130
+    submitted = [ledger.submit(replace(inputs, seed=seed)).id for seed in range(count)]
+    everything = ledger.query_all()
+    assert [run.id for run in everything] == submitted
+    pages = [ledger.query(limit=50, offset=offset) for offset in (0, 50, 100, 150)]
+    paged = [run.id for page in pages for run in page]
+    assert paged == submitted
+    assert ledger.query(limit=50, offset=150) == ()
+    assert len(ledger.query(limit=1000)) == count
+
+
+def test_query_requires_an_explicit_positive_limit(ledger):
+    with pytest.raises(TypeError):
+        ledger.query()  # pyright: ignore[reportCallIssue]
+    with pytest.raises(InvalidInputError):
+        ledger.query(limit=0)
+    with pytest.raises(InvalidInputError):
+        ledger.query(limit=5, offset=-1)
 
 
 def test_query_groups_seeds_by_candidate(ledger, inputs):
     seeds = [ledger.submit(replace(inputs, seed=seed)) for seed in (1, 2, 3)]
     other = ledger.submit(replace(inputs, config={"depth": 8}))
-    grouped = ledger.query(candidate_hash=inputs.candidate_hash)
+    grouped = ledger.query_all(candidate_hash=inputs.candidate_hash)
     assert [run.id for run in grouped] == [run.id for run in seeds]
-    assert ledger.query(candidate_hash=other.inputs.candidate_hash) == (other,)
+    assert ledger.query_all(candidate_hash=other.inputs.candidate_hash) == (other,)
     with pytest.raises(InvalidInputError):
-        ledger.query(candidate_hash="not a digest")
+        ledger.query_all(candidate_hash="not a digest")
 
 
 def test_invalid_transitions_do_not_change_evidence(ledger, inputs, result):
@@ -425,7 +447,7 @@ with KilledLedger(sys.argv[1]) as ledger:
     )
     assert child.returncode == -signal.SIGKILL, child.stderr.decode()
     with Ledger(path) as ledger:
-        assert ledger.query() == ()
+        assert ledger.query_all() == ()
         assert ledger.submit(inputs).status == "queued"
     with sqlite3.connect(path) as db:
         assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
@@ -446,7 +468,7 @@ def test_interrupted_run_stays_visible_and_can_be_retried(tmp_path, inputs, resu
         ledger.start_stage(retry.id, "execution")
         ledger.start_stage(retry.id, "evaluation")
         ledger.complete(retry.id, result)
-        assert len(ledger.query()) == 2
+        assert len(ledger.query_all()) == 2
 
 
 def test_killed_completion_does_not_publish_a_partial_result(tmp_path, inputs, result):
@@ -474,7 +496,7 @@ with KilledLedger(sys.argv[1]) as ledger:
     assert child.returncode == -signal.SIGKILL, child.stderr.decode()
     with Ledger(path) as ledger:
         assert ledger.get(run.id) == before
-        assert ledger.query(status="succeeded") == ()
+        assert ledger.query_all(status="succeeded") == ()
         completed = ledger.complete(run.id, result)
         assert completed.result == result
         assert isinstance(completed.result, Result)

@@ -1,0 +1,39 @@
+{
+  "index": 5,
+  "kind": "heldout",
+  "arm": "bc5cdc1",
+  "seed": 3002,
+  "attempt": 1,
+  "base_program_sha256": "e679b8d767e1d3528df6d4c0556935e0f3cbf84154acbc2fa93f80d62422485a",
+  "program_sha256": "c455d15096e5095a9d963376b90a205057999ecff6bcfd6c945a825670c483ed",
+  "ledger_run_id": "3e7adc66ffaf4529aaa534a7e8940f63",
+  "execution": {
+    "job_id": "5cbcd42b6260460ca9183c212347695f",
+    "input_hash": "c17789ca786706097ffec2796a282cf2a67e380acb655cdb7cef916dd732ddfa",
+    "state": "cancelled",
+    "exit_code": -9,
+    "started_at": "2026-10-13T11:14:47.396492+00:00",
+    "finished_at": "2026-10-13T11:18:52.870075+00:00",
+    "elapsed_seconds": 245.4696189169772,
+    "peak_rss_bytes": 120602624,
+    "error": null,
+    "artifacts": [
+      {
+        "path": "executor/5cbcd42b6260460ca9183c212347695f/stdout",
+        "sha256": "1c2605127b3e5be0923a840a386f8388c3858dc7cd3f3cc39243132782db0aac",
+        "size_bytes": 43607
+      },
+      {
+        "path": "executor/5cbcd42b6260460ca9183c212347695f/stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      }
+    ]
+  },
+  "summary": null,
+  "validity": {
+    "valid": true,
+    "drift_seconds": 0.003890861291438341
+  },
+  "failure": "memory guard: system free memory below 15% for 2 consecutive samples"
+}

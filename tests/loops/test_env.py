@@ -46,10 +46,10 @@ def test_single_contract_runs_both_fidelities(t0: T0, ledger: Ledger) -> None:
     assert initial.permitted_fidelities == ("1x", "4x")
     assert screen.observation.permitted_fidelities == ("1x", "4x")
     assert confirm.observation.permitted_fidelities == ()
-    assert len(ledger.query(status="succeeded")) == 2
+    assert len(ledger.query_all(status="succeeded")) == 2
     with pytest.raises(ContractError, match="remaining"):
         asyncio.run(env.step(LoopAction(44)))
-    assert len(ledger.query()) == 2
+    assert len(ledger.query_all()) == 2
 
 
 def test_completed_cache_hit_is_not_new_work(t0: T0, ledger: Ledger) -> None:
@@ -62,7 +62,7 @@ def test_completed_cache_hit_is_not_new_work(t0: T0, ledger: Ledger) -> None:
     assert reused.work_units == 0
     assert reused.attempt_id == first.attempt_id
     assert reused.observation.remaining_budget == 4
-    assert len(ledger.query()) == 1
+    assert len(ledger.query_all()) == 1
     replication = asyncio.run(env.step(LoopAction(42, purpose=Purpose.REPLICATION)))
     assert replication.attempt_id != first.attempt_id
     assert replication.observation.remaining_budget == 3
@@ -75,7 +75,7 @@ def test_request_replay_does_not_charge_twice(t0: T0, ledger: Ledger) -> None:
     assert asyncio.run(env.step(action)) == first
     with pytest.raises(ContractError, match="different action"):
         asyncio.run(env.step(replace(action, seed=43)))
-    assert len(ledger.query()) == 1
+    assert len(ledger.query_all()) == 1
 
 
 def test_runner_failure_preserves_evidence_and_allowance(
@@ -95,7 +95,7 @@ def test_runner_failure_preserves_evidence_and_allowance(
     with pytest.raises(RuntimeError, match="Worker crashed"):
         asyncio.run(env.step(LoopAction(42)))
     assert asyncio.run(env.initial_observation()).remaining_budget == 0
-    (failed,) = ledger.query()
+    (failed,) = ledger.query_all()
     assert failed.status is Status.FAILED
     assert failed.events[-1].payload["reason"] == "RuntimeError: Worker crashed"
 
@@ -116,8 +116,8 @@ def test_invalid_output_fails_without_completed_evidence(
     )
     with pytest.raises(ContractError, match="declared fidelity"):
         asyncio.run(env.step(LoopAction(42)))
-    assert ledger.query(status="succeeded") == ()
-    assert len(ledger.query(status="failed")) == 1
+    assert ledger.query_all(status="succeeded") == ()
+    assert len(ledger.query_all(status="failed")) == 1
 
 
 def test_concurrent_step_is_rejected_before_admission(t0: T0, ledger: Ledger) -> None:
@@ -145,7 +145,7 @@ def test_concurrent_step_is_rejected_before_admission(t0: T0, ledger: Ledger) ->
         await pending
 
     asyncio.run(scenario())
-    assert len(ledger.query()) == 1
+    assert len(ledger.query_all()) == 1
 
 
 def test_loop_cannot_change_its_frozen_spec(t0: T0, ledger: Ledger) -> None:
@@ -153,7 +153,7 @@ def test_loop_cannot_change_its_frozen_spec(t0: T0, ledger: Ledger) -> None:
     t0._spec = replace(t0.spec, data_hash="b" * 64)
     with pytest.raises(ContractError, match="specification changed"):
         asyncio.run(env.step(LoopAction(42)))
-    assert ledger.query() == ()
+    assert ledger.query_all() == ()
 
 
 def test_contract_change_during_execution_cannot_publish(
@@ -174,8 +174,8 @@ def test_contract_change_during_execution_cannot_publish(
     )
     with pytest.raises(ContractError, match="changed during execution"):
         asyncio.run(env.step(LoopAction(42)))
-    assert ledger.query(status="succeeded") == ()
-    assert len(ledger.query(status="failed")) == 1
+    assert ledger.query_all(status="succeeded") == ()
+    assert len(ledger.query_all(status="failed")) == 1
 
 
 def test_pending_cache_reference_has_unresolved_status(t0: T0, ledger: Ledger) -> None:

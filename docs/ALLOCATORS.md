@@ -23,7 +23,7 @@ Every job costs its full declared fidelity amount.
 Training tokens, epochs, and lookup counts are separate units. They are not currency costs.
 
 The caller must supply complete, current ledger evidence for this loop and environment.
-Complete means every run: `Ledger.query()` returns at most 100 runs by default, so page through it or raise `limit`.
+Complete means every run: pass `Ledger.query_all()`, never a paginated `Ledger.query(limit=...)` page.
 A truncated list makes finished work look fresh, and the coordinator would run it again.
 Other scopes are rejected. Confirmation results are excluded from selection evidence.
 Only validation metrics with the declared name, unit, and direction can supply scores.
@@ -235,7 +235,7 @@ with TemporaryDirectory() as directory, Ledger(Path(directory) / "runs.sqlite3")
     remaining = 100
     while True:
         snapshot = AllocationSnapshot(
-            loop.spec, environment, jobs, ledger.query(limit=10_000), remaining, slots=2,
+            loop.spec, environment, jobs, ledger.query_all(), remaining, slots=2,
         )
         allocation = policy.select(snapshot)
         if not allocation.jobs:

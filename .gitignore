@@ -24,3 +24,7 @@ data/fineweb-edu/splits/
 data/fineweb-edu/freeze-*/
 data/tabular/raw/
 data/tabular/hpob/
+research/s1-part2/sources/
+research/s1-part2/run-*/workdirs/
+data/climbmix-heldout/*.parquet
+data/climbmix-heldout/*.tmp
