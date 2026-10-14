@@ -23,3 +23,7 @@ class InvalidTransitionError(LedgerError):
 
 class SchemaError(LedgerError):
     """The database is unrelated or has an unsupported schema version."""
+
+
+class ReadOnlyError(LedgerError):
+    """A write was attempted through a read-only ledger."""

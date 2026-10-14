@@ -13,11 +13,15 @@ from pathlib import Path
 from typing import Self
 from uuid import uuid4
 
+from .activities import Activity, ActivityKind
+from .activity_store import append_activity, read_activities
 from .errors import (
     ConflictError,
     InvalidInputError,
     InvalidTransitionError,
     NotFoundError,
+    ReadOnlyError,
+    SchemaError,
 )
 from .identity import ExperimentInputs, Reproducibility, canonical_json
 from .records import (
@@ -34,7 +38,12 @@ from .records import (
     Status,
     compare_results,
 )
-from .schema import ensure_schema
+from .schema import (
+    SCHEMA_VERSION,
+    ensure_schema,
+    stored_version,
+    supports_activity,
+)
 from .validation import (
     check_digest,
     check_positive,
@@ -49,16 +58,46 @@ _STAGE_ORDER = tuple(Stage)
 class Ledger:
     """A SQLite ledger. Use one connection per thread and close it after use."""
 
-    def __init__(self, path: str | Path) -> None:
-        self._db = sqlite3.connect(path, timeout=10, isolation_level=None)
+    def __init__(
+        self, path: str | Path, *, migrate: bool = False, read_only: bool = False
+    ) -> None:
+        """Open a ledger.
+
+        An existing version-2 database is left unchanged unless `migrate` is
+        true; its experiment APIs work and its activity APIs raise `SchemaError`.
+        `read_only` opens through SQLite `mode=ro`: no schema change, no write,
+        and no journal-mode change. Use it for frozen evidence.
+        """
+        if read_only and migrate:
+            raise InvalidInputError("A read-only ledger cannot migrate")
+        self._read_only = read_only
+        if read_only:
+            uri = Path(path).absolute().as_uri() + "?mode=ro"
+            self._db = sqlite3.connect(uri, uri=True, timeout=10, isolation_level=None)
+        else:
+            self._db = sqlite3.connect(path, timeout=10, isolation_level=None)
         self._db.row_factory = sqlite3.Row
         # Monotonic stage starts for this connection; dropped when a stage ends.
         self._ticks: dict[tuple[str, Stage], float] = {}
         try:
             self._db.execute("PRAGMA foreign_keys = ON")
-            with self._transaction():
-                ensure_schema(self._db)
-            self._enable_wal()
+            if read_only:
+                self._db.execute("PRAGMA query_only = ON")
+                with self._transaction(write=False):
+                    self._version = stored_version(self._db)
+                    if self._version not in (2, SCHEMA_VERSION):
+                        raise SchemaError(
+                            f"Cannot read ledger schema version {self._version}"
+                        )
+            else:
+                self._version = stored_version(self._db)
+                if self._version == 0 or (self._version == 2 and migrate):
+                    with self._transaction():
+                        self._version = ensure_schema(self._db, migrate=migrate)
+                    self._enable_wal()
+                else:
+                    with self._transaction(write=False):
+                        self._version = ensure_schema(self._db)
         except BaseException:
             self._db.close()
             raise
@@ -71,6 +110,41 @@ class Ledger:
 
     def close(self) -> None:
         self._db.close()
+
+    def record_activity(
+        self,
+        kind: ActivityKind | str,
+        subject_hash: str,
+        payload: object,
+        *,
+        key: str | None = None,
+        parent_sequence: int | None = None,
+    ) -> Activity:
+        """Append operator evidence, with atomic admission and a three-attempt cap."""
+        self._require_activity()
+        with self._transaction():
+            return append_activity(
+                self._db,
+                kind,
+                subject_hash,
+                payload,
+                timestamp=self._now(),
+                key=key,
+                parent_sequence=parent_sequence,
+            )
+
+    def activities(self, *, subject_hash: str | None = None) -> tuple[Activity, ...]:
+        """Read immutable operator records separately from experiment samples."""
+        self._require_activity()
+        with self._transaction(write=False):
+            return read_activities(self._db, subject_hash)
+
+    def _require_activity(self) -> None:
+        if not supports_activity(self._version):
+            raise SchemaError(
+                f"Ledger schema version {self._version} has no activity table; "
+                "reopen a writable working copy with migrate=True"
+            )
 
     def _enable_wal(self) -> None:
         # Journal-mode changes can return BUSY without honoring connect(timeout).
@@ -89,6 +163,8 @@ class Ledger:
 
     @contextmanager
     def _transaction(self, *, write: bool = True) -> Generator[None]:
+        if write and self._read_only:
+            raise ReadOnlyError("This ledger was opened read-only")
         self._db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
         try:
             yield

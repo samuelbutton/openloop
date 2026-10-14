@@ -4,12 +4,19 @@ Only trusted callers may complete runs. This package records evidence; it does
 not execute candidate code, validate an evaluator, or make statistical decisions.
 """
 
+from .activities import (
+    MAX_IMPLEMENTATION_ATTEMPTS,
+    Activity,
+    ActivityKind,
+    HypothesisOutcome,
+)
 from .errors import (
     ConflictError,
     InvalidInputError,
     InvalidTransitionError,
     LedgerError,
     NotFoundError,
+    ReadOnlyError,
     SchemaError,
 )
 from .identity import (
@@ -41,12 +48,16 @@ from .validation import JSONValue
 
 __all__ = [
     "IDENTITY_VERSION",
+    "MAX_IMPLEMENTATION_ATTEMPTS",
     "SCHEMA_VERSION",
+    "Activity",
+    "ActivityKind",
     "ConflictError",
     "Direction",
     "Event",
     "EventKind",
     "ExperimentInputs",
+    "HypothesisOutcome",
     "InvalidInputError",
     "InvalidTransitionError",
     "JSONValue",
@@ -58,6 +69,7 @@ __all__ = [
     "PreparationStage",
     "ProbeResult",
     "Purpose",
+    "ReadOnlyError",
     "Reproducibility",
     "Result",
     "Run",

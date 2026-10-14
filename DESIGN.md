@@ -34,6 +34,9 @@ They provide greedy, random, UCB1 bandit, successive halving, and a declared-gri
 Offline T0 and NAS-Bench-201 fixture checks are complete. S2 policy comparisons remain planned.
 The [mock executor](docs/MOCK_EXECUTOR.md) replays recorded durations and outcomes with a virtual clock and simulated worker slots.
 Replay checks preserve all 70 legacy S1 outcomes. An offline test admits 10,000 simulated jobs.
+The [research operators](docs/OPERATORS.md) record predicted hypothesis cards and bounded sandbox implementations.
+Their activity records separate implementation failures from measured idea failures.
+Scripted providers and CPU smoke checks are verified. Live provider adapters remain unverified.
 The GCP stub, application spend gate, and other plugins remain planned.
 The [model configuration](config/models.toml) selects `gpt-6-astra` as proposer and `gpt-6.1-sol` through Codex CLI as implementer.
 The [billing configuration](config/billing.toml) records a $10 monthly OpenAI limit and $10 of RunPod credit.

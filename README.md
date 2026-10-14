@@ -112,6 +112,13 @@ Each batch respects the supplied work budget and free worker slots.
 The [guide](docs/ALLOCATORS.md) defines the policy choices and includes a CPU-only example.
 S2 policy comparisons and scale projections remain planned.
 
+## Research operators
+
+The [research operators](docs/OPERATORS.md) provide draft, improve, debug, and combine hypothesis cards.
+The implementer applies permitted file edits in a network-disabled container worktree and requires a smoke pass.
+The ledger limits each card to one attempt and two repairs. It records implementation and measured idea failures separately.
+Providers are injected; the default package starts no model API calls.
+
 ## Frozen training data
 
 The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,
