@@ -10,6 +10,7 @@ from .activities import (
     ActivityKind,
     HypothesisOutcome,
 )
+from .derivations import Derivation
 from .errors import (
     ConflictError,
     InvalidInputError,
@@ -53,6 +54,7 @@ __all__ = [
     "Activity",
     "ActivityKind",
     "ConflictError",
+    "Derivation",
     "Direction",
     "Event",
     "EventKind",

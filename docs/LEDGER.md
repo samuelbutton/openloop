@@ -1,6 +1,6 @@
 # Experiment ledger
 
-`openloop.ledger` provides a local SQLite ledger with storage schema version 3.
+`openloop.ledger` provides a local SQLite ledger with storage schema version 4.
 It uses only the Python standard library.
 The existing `ledger.json` remains a separate setup record.
 The ledger does not import that record automatically.
@@ -56,32 +56,40 @@ SQL `CHECK` clauses are built from the same enums.
 | `preparation` | Proposal and implementation times for one submission. |
 | `probe` | Baseline and replication references, tolerances, comparison time, observed differences, and cache invalidation. |
 | `activity` | Append-only hypothesis, operator, implementation, binding, idea-failure, hypothesis-outcome, and spend records. These are not experiment samples. An index on `(subject_hash, sequence)` serves per-subject reads. |
+| `derivation` | Content-addressed plugin reports with namespace, subject hash, immutable payload, and publication time. These are not experiment samples. |
 
 Database triggers reject updates and deletes.
 The `attempt_state` view derives current status from events.
 Admission uses one write transaction for inputs, attempts, submissions, parents, and the initial queue event.
 Connections use foreign keys and write-ahead logging.
-Schema version 3 is unreleased, so its definition changes in place.
+Schema version 4 adds `derivation` without changing input identities or prior tables.
+`record_derivation(namespace, subject_hash, payload)` publishes a report in one transaction.
+Identical content returns the original record, including its publication time.
+`derivations(namespace, *, subject_hash=None)` returns all matching reports.
+The core trusts the plugin to validate its report. The [memory plugin](MEMORY.md) verifies findings before it calls this API.
 
 ## Opening, migration, and frozen evidence
 
 `Ledger(path, *, migrate=False, read_only=False)` never upgrades a schema implicitly.
 
-| Open mode | Version 2 database | Version 3 database |
-| --- | --- | --- |
-| Default | Opened unchanged. Experiment and run APIs work. Activity APIs raise `SchemaError`, which tells the caller to pass `migrate=True` on a writable working copy. | Opened normally. |
-| `migrate=True` | Upgraded to version 3 in one write transaction. Existing run records and identity hashes are unchanged. | Opened normally. |
-| `read_only=True` | Opened through SQLite `mode=ro`. No DDL, no write, and no journal-mode change. Activity APIs raise `SchemaError`. | Opened read-only. Every write raises `ReadOnlyError`. |
+| Open mode | Version 2 database | Version 3 database | Version 4 database |
+| --- | --- | --- | --- |
+| Default | Opened unchanged. Run APIs work. Activity and derivation APIs raise `SchemaError`. | Opened unchanged. Activity APIs work. Derivation APIs raise `SchemaError`. | Opened normally. |
+| `migrate=True` | Adds activity and derivation tables in one write transaction. | Adds the derivation table in one write transaction. | Opened normally. |
+| `read_only=True` | No DDL, writes, or journal-mode change. Missing-table APIs raise `SchemaError`. | Same read-only contract. Derivation APIs raise `SchemaError`. | All reads work; writes raise `ReadOnlyError`. |
+
+Migration preserves existing run records and identity hashes.
+An absent-table error tells the caller to pass `migrate=True` on a writable working copy.
 
 `read_only` and `migrate` together raise `InvalidInputError`.
 A read-only open of a missing file fails and creates nothing.
-A new empty path is initialized at version 3 with write-ahead logging, as before.
+A new empty path is initialized at version 4 with write-ahead logging.
 
 Use `read_only=True` for every frozen evidence ledger, such as `research/**/ledger.sqlite3`.
 Never migrate evidence in place; copy it first and migrate the copy.
 A read-only open leaves the database file byte-identical, verified by SHA-256 on a copy of a real version 2 ledger.
 A WAL database can still gain empty `-wal` and `-shm` sidecar files, because SQLite needs the shared-memory index to read.
-A non-read-only open does not change the schema or `user_version` of a version 2 file.
+A default writable open does not change the schema or `user_version` of a version 2 or 3 file.
 It also skips the journal-mode change for existing files.
 It still takes a read transaction and can create the same sidecars.
 Closing the last writable connection to a WAL database checkpoints any pending `-wal` frames into the main file, which changes its bytes.
@@ -106,7 +114,7 @@ Use one `Ledger` connection per thread.
 | `NotFoundError` | Unknown run IDs and missing parents. Also a `LookupError`. |
 | `ConflictError` | A request key reused with different provenance, or a preparation stage recorded twice. |
 | `InvalidTransitionError` | Stage order, terminal runs, reused submissions, retries of runs that did not fail, and probes of incomplete baselines. |
-| `SchemaError` | Unrelated databases, unsupported schema versions, and activity calls on an unmigrated version 2 database. |
+| `SchemaError` | Unrelated databases, unsupported schema versions, and APIs for absent tables in an unmigrated database. |
 | `ReadOnlyError` | A write through a `read_only=True` ledger. |
 
 ## API

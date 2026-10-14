@@ -95,8 +95,9 @@ The [mock backend](docs/MOCK_EXECUTOR.md) replays recorded outcomes and duration
 [`openloop.decider`](docs/DECIDER.md) freezes the comparison family, noise
 calibration, and seed schedules. It offers noise-aware and AutoScientists screen
 policies. Both use fresh-seed confirmation with a family error bound, followed by
-one trusted held-out batch after selection closes. The coordinator is in memory;
-held-out file isolation and durable campaign records remain host responsibilities.
+one trusted held-out batch after selection closes. The coordinator is in memory
+unless it opts in to a ledger-backed campaign journal that a new process can restore;
+held-out file isolation remains a host responsibility.
 The [CPU-only T0 study](docs/decider-t0.json) measures detection rate across effect sizes
 and false-confirmation rate under nulls for each decision rule on simulated truth.
 
@@ -118,6 +119,14 @@ The [research operators](docs/OPERATORS.md) provide draft, improve, debug, and c
 The implementer applies permitted file edits in a network-disabled container worktree and requires a smoke pass.
 The ledger limits each card to one attempt and two repairs. It records implementation and measured idea failures separately.
 Providers are injected; the default package starts no model API calls.
+
+## Research memory
+
+The [research memory plugin](docs/MEMORY.md) stores verified positive findings.
+It reloads ledger scores and replays the complete selection and held-out test
+before publication. Reports include effect statistics, evidence counts, scope,
+and simulation markers. Python queries and a read-only JSON CLI expose the reports.
+Memory is not added to proposer context automatically.
 
 ## Frozen training data
 

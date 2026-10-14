@@ -10,7 +10,7 @@ from .activities import ActivityKind
 from .errors import SchemaError
 from .records import EventKind, PreparationStage, Purpose, Stage, Status
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 TABLES = (
     "experiment",
     "attempt",
@@ -20,6 +20,7 @@ TABLES = (
     "probe",
     "preparation",
     "activity",
+    "derivation",
 )
 
 
@@ -98,6 +99,13 @@ _ACTIVITY_DDL = f"""CREATE TABLE activity (
     request_key TEXT UNIQUE, parent_sequence INTEGER REFERENCES activity(sequence)
 )"""
 _ACTIVITY_INDEX = "CREATE INDEX activity_subject ON activity(subject_hash, sequence)"
+_DERIVATION_DDL = """CREATE TABLE derivation (
+    hash TEXT PRIMARY KEY, namespace TEXT NOT NULL, subject_hash TEXT NOT NULL,
+    payload TEXT NOT NULL, timestamp TEXT NOT NULL
+)"""
+_DERIVATION_INDEX = (
+    "CREATE INDEX derivation_subject ON derivation(namespace, subject_hash)"
+)
 
 
 def _protect(db: sqlite3.Connection, table: str) -> None:
@@ -114,6 +122,8 @@ def _create(db: sqlite3.Connection) -> None:
         db.execute(statement)
     db.execute(_ACTIVITY_DDL)
     db.execute(_ACTIVITY_INDEX)
+    db.execute(_DERIVATION_DDL)
+    db.execute(_DERIVATION_INDEX)
     for table in TABLES:
         _protect(db, table)
     db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
@@ -125,13 +135,13 @@ def stored_version(db: sqlite3.Connection) -> int:
 
 
 def supports_activity(version: int) -> bool:
-    return version == SCHEMA_VERSION
+    return version in (3, SCHEMA_VERSION)
 
 
 def ensure_schema(db: sqlite3.Connection, *, migrate: bool = False) -> int:
     """Create an empty database or validate an existing one; return its version.
 
-    Call inside a write transaction. A version-2 database is upgraded only when
+    Call inside a write transaction. A version-2 or -3 database is upgraded only when
     `migrate` is true; otherwise it is left exactly as found.
     """
     version = stored_version(db)
@@ -140,12 +150,16 @@ def ensure_schema(db: sqlite3.Connection, *, migrate: bool = False) -> int:
             raise SchemaError("Refusing to initialize an unrelated database")
         _create(db)
         return SCHEMA_VERSION
-    if version == 2:
+    if version in (2, 3):
         if not migrate:
             return version
-        db.execute(_ACTIVITY_DDL)
-        db.execute(_ACTIVITY_INDEX)
-        _protect(db, "activity")
+        if version == 2:
+            db.execute(_ACTIVITY_DDL)
+            db.execute(_ACTIVITY_INDEX)
+            _protect(db, "activity")
+        db.execute(_DERIVATION_DDL)
+        db.execute(_DERIVATION_INDEX)
+        _protect(db, "derivation")
         db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         return SCHEMA_VERSION
     if version != SCHEMA_VERSION:

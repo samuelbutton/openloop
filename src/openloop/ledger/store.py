@@ -15,6 +15,8 @@ from uuid import uuid4
 
 from .activities import Activity, ActivityKind
 from .activity_store import append_activity, read_activities
+from .derivation_store import append_derivation, read_derivations
+from .derivations import Derivation
 from .errors import (
     ConflictError,
     InvalidInputError,
@@ -50,6 +52,7 @@ from .validation import (
     check_text,
     coerce_enum,
     freeze_object,
+    plain,
 )
 
 _STAGE_ORDER = tuple(Stage)
@@ -63,8 +66,8 @@ class Ledger:
     ) -> None:
         """Open a ledger.
 
-        An existing version-2 database is left unchanged unless `migrate` is
-        true; its experiment APIs work and its activity APIs raise `SchemaError`.
+        Existing version-2 and -3 databases stay unchanged unless `migrate` is
+        true. APIs for absent tables raise `SchemaError`.
         `read_only` opens through SQLite `mode=ro`: no schema change, no write,
         and no journal-mode change. Use it for frozen evidence.
         """
@@ -85,13 +88,13 @@ class Ledger:
                 self._db.execute("PRAGMA query_only = ON")
                 with self._transaction(write=False):
                     self._version = stored_version(self._db)
-                    if self._version not in (2, SCHEMA_VERSION):
+                    if self._version not in (2, 3, SCHEMA_VERSION):
                         raise SchemaError(
                             f"Cannot read ledger schema version {self._version}"
                         )
             else:
                 self._version = stored_version(self._db)
-                if self._version == 0 or (self._version == 2 and migrate):
+                if self._version == 0 or (self._version in (2, 3) and migrate):
                     with self._transaction():
                         self._version = ensure_schema(self._db, migrate=migrate)
                     self._enable_wal()
@@ -101,6 +104,11 @@ class Ledger:
         except BaseException:
             self._db.close()
             raise
+
+    @property
+    def schema_version(self) -> int:
+        """The storage schema version of the open database."""
+        return self._version
 
     def __enter__(self) -> Self:
         return self
@@ -145,6 +153,36 @@ class Ledger:
                 f"Ledger schema version {self._version} has no activity table; "
                 "reopen a writable working copy with migrate=True"
             )
+
+    def _require_derivations(self) -> None:
+        if self._version != SCHEMA_VERSION:
+            raise SchemaError(
+                f"Ledger schema version {self._version} has no derivation table; "
+                "reopen a writable working copy with migrate=True"
+            )
+
+    def record_derivation(
+        self, namespace: str, subject_hash: str, payload: object
+    ) -> Derivation:
+        """Publish a trusted plugin report; identical content reuses the record.
+
+        The caller must verify its evidence. This does not create a run or score.
+        """
+        self._require_derivations()
+        body = plain(payload)
+        if not isinstance(body, dict):
+            raise InvalidInputError("A derived report must be an object")
+        record = Derivation(namespace, subject_hash, body, self._now())
+        with self._transaction():
+            return append_derivation(self._db, record)
+
+    def derivations(
+        self, namespace: str, *, subject_hash: str | None = None
+    ) -> tuple[Derivation, ...]:
+        """Return all reports in publication order, without a hidden page limit."""
+        self._require_derivations()
+        with self._transaction(write=False):
+            return read_derivations(self._db, namespace, subject_hash)
 
     def _enable_wal(self) -> None:
         # Journal-mode changes can return BUSY without honoring connect(timeout).

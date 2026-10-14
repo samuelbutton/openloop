@@ -1,14 +1,17 @@
-"""Trusted, in-memory coordination; no candidate workers or held-out file access.
+"""Trusted coordination; no candidate workers or held-out file access.
 
 The trusted final evaluator is called once, after selection closes. A failure
-consumes that permission too. This guard is not a durable record or a sandbox:
-the host must isolate held-out data and persist campaign snapshots externally.
+consumes that permission too. By default the guard lives in memory only. With a
+`TransitionSink` (see `CampaignJournal`) each transition is recorded before it
+is applied, and a restored campaign keeps the permission consumed. This is not
+a sandbox: the host must isolate held-out data.
 """
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from statistics import fmean
+from types import MappingProxyType
 
-from openloop.ledger import InvalidInputError, InvalidTransitionError
+from openloop.ledger import InvalidInputError, InvalidTransitionError, content_hash
 from openloop.ledger.validation import check_text, coerce_enum
 
 from .models import (
@@ -24,6 +27,7 @@ from .models import (
 )
 from .policies import decide, validate_calibration
 from .statistics import Calibration
+from .transitions import TransitionKind, TransitionSink
 
 type FinalEvaluator = Callable[[str, StagePlan], Awaitable[tuple[Pair, ...]]]
 
@@ -41,13 +45,25 @@ class Campaign:
 
     Under Policy.ALLOCATOR the screen is an allocator run, recorded once per
     family member by `record_external_screen` before any confirmation.
+
+    With a `journal`, creation registers the protocol and every later transition
+    is appended to it before the campaign applies it. A failed append leaves the
+    campaign unchanged. Without one, nothing is durable.
     """
 
     def __init__(
-        self, protocol: Protocol, screen_noise: Calibration, confirm_noise: Calibration
+        self,
+        protocol: Protocol,
+        screen_noise: Calibration,
+        confirm_noise: Calibration,
+        *,
+        journal: TransitionSink | None = None,
     ) -> None:
         validate_calibration(protocol, DecisionStage.SCREEN, screen_noise)
         validate_calibration(protocol, DecisionStage.CONFIRM, confirm_noise)
+        if journal is not None:
+            journal.open(protocol, screen_noise, confirm_noise)
+        self._journal = journal
         self._protocol = protocol
         self._screen_noise = screen_noise
         self._confirm_noise = confirm_noise
@@ -64,10 +80,36 @@ class Campaign:
         self._selected: str | None = None
         self._final_consumed = False
         self._final: Decision | None = None
+        self._screen_sources: dict[str, tuple[tuple[int, ...], str]] = {}
+
+    def attach_journal(self, journal: TransitionSink) -> None:
+        """Journal later transitions of a restored campaign; never re-opens one."""
+        if self._journal is not None:
+            raise InvalidTransitionError("A journal is already attached")
+        self._journal = journal
+
+    def _record(self, kind: TransitionKind, payload: Mapping[str, object]) -> None:
+        if self._journal is not None:
+            self._journal.append(self._protocol.hash, kind, payload)
+
+    @property
+    def screen_sources(self) -> Mapping[str, tuple[tuple[int, ...], str]]:
+        """Return external screen seed declarations and sources for audit replay."""
+        return MappingProxyType(dict(self._screen_sources))
 
     @property
     def protocol(self) -> Protocol:
         return self._protocol
+
+    @property
+    def screen_noise(self) -> Calibration:
+        """The frozen validation calibration used for screening."""
+        return self._screen_noise
+
+    @property
+    def confirm_noise(self) -> Calibration:
+        """The frozen validation calibration used for confirmation and final tests."""
+        return self._confirm_noise
 
     @property
     def decisions(self) -> tuple[Decision, ...]:
@@ -125,10 +167,16 @@ class Campaign:
                 self._samples[sample.inputs.hash] = sample
                 self._attempts[sample.attempt_id] = sample
 
-    def _freeze_confirmation_set(self) -> None:
-        """Fix the SCREENED set once, from resolved screens and no confirmation score"""
+    def freeze_confirmation_set(self) -> tuple[str, ...]:
+        """Fix the SCREENED set once, from resolved screens and no confirmation score.
+
+        `evaluate` and `close_selection` call this on their own; a repeated call
+        returns the frozen set. FAMILY scope has no such set.
+        """
+        if self.protocol.confirmation_scope is not ConfirmationScope.SCREENED:
+            raise InvalidTransitionError("Only the screened scope freezes a set")
         if self._confirmation_set is not None:
-            return
+            return self._confirmation_set
         screens = {
             member: self._decisions.get((member, DecisionStage.SCREEN))
             for member in self.protocol.candidates
@@ -158,6 +206,7 @@ class Campaign:
         )
         limit = self.protocol.confirm_top_k
         kept = promoted if limit is None else promoted[:limit]
+        self._record(TransitionKind.CONFIRMATION_SET, {"members": kept})
         for member in promoted[len(kept) :]:
             screen = screens[member]
             assert screen is not None
@@ -172,6 +221,7 @@ class Campaign:
                 screen.median_gain,
             )
         self._confirmation_set = tuple(kept)
+        return self._confirmation_set
 
     def record_external_screen(
         self,
@@ -237,8 +287,19 @@ class Campaign:
             references,
             0,
         )
+        self._record(
+            TransitionKind.EXTERNAL_SCREEN,
+            {
+                "decision": decision,
+                "promoted": promoted,
+                "evidence": references,
+                "seeds": used,
+                "source": source,
+            },
+        )
         self._decisions[candidate, DecisionStage.SCREEN] = decision
         self._evidence[candidate, DecisionStage.SCREEN] = ()
+        self._screen_sources[candidate] = (used, source)
         return decision
 
     def evaluate(
@@ -258,7 +319,7 @@ class Campaign:
             stage is DecisionStage.CONFIRM
             and self.protocol.confirmation_scope is ConfirmationScope.SCREENED
         ):
-            self._freeze_confirmation_set()
+            self.freeze_confirmation_set()
         key = candidate, stage
         old = self._decisions.get(key)
         if old is not None and old.verdict is not Verdict.INCONCLUSIVE:
@@ -285,6 +346,7 @@ class Campaign:
                 self.confirmation_alpha if stage is DecisionStage.CONFIRM else None
             ),
         )
+        self._record(TransitionKind.DECISION, {"decision": result})
         self._decisions[key] = result
         self._evidence[key] = pairs
         self._remember_samples(pairs)
@@ -304,7 +366,7 @@ class Campaign:
                     "Only a confirmed candidate can be selected"
                 )
         if self.protocol.confirmation_scope is ConfirmationScope.SCREENED:
-            self._freeze_confirmation_set()
+            self.freeze_confirmation_set()
         for member in self.protocol.candidates:
             screen = self._decisions.get((member, DecisionStage.SCREEN))
             confirm = self._decisions.get((member, DecisionStage.CONFIRM))
@@ -325,6 +387,7 @@ class Campaign:
                 and confirm.verdict is Verdict.PROMOTE
             ):
                 raise InvalidTransitionError("Select the confirmed candidate")
+        self._record(TransitionKind.SELECTION_CLOSED, {"selected": candidate})
         self._closed = True
         self._selected = candidate
 
@@ -334,6 +397,7 @@ class Campaign:
             raise InvalidTransitionError(
                 "Held-out requires closed selection and unused permission"
             )
+        self._record(TransitionKind.FINAL_STARTED, {"candidate_hash": self._selected})
         self._final_consumed = True
         pairs = tuple(await evaluator(self._selected, self.protocol.held_out))
         if len(pairs) != len(self.protocol.held_out.seeds):
@@ -347,6 +411,10 @@ class Campaign:
             self._selected,
             pairs,
             self._confirm_noise,
+        )
+        self._record(
+            TransitionKind.FINAL,
+            {"decision": result, "decision_hash": content_hash(result)},
         )
         self._final = result
         self._remember_samples(pairs)

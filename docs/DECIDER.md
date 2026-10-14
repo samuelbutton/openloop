@@ -241,12 +241,17 @@ No intermediate held-out scores enter validation decisions.
 Permission is consumed before the evaluator starts.
 Failure, cancellation, and concurrent calls cannot reopen it in that campaign instance.
 
-The coordinator is in memory.
-It is not a file access boundary or a durable campaign store.
+The coordinator is in memory unless it has a `CampaignJournal`.
+It is not a file access boundary.
 The trusted host must isolate held-out files from candidate workers and proposers.
 It must prevent creation of a new campaign over the same used held-out set.
-Restricted campaign records and recovery across coordinator crashes remain planned.
-Do not claim durable one-use access from this API alone.
+A journaled campaign records each transition on the ledger before it applies it.
+`CampaignJournal.restore` rebuilds it in a new process by re-deciding from ledger
+scores, and keeps the held-out permission consumed ([details](MEMORY.md#campaign-journal)).
+A journal refuses a second campaign for the same protocol on that ledger.
+A coordinator without a journal has no durable one-use guard.
+Restricted campaign records and campaign budgets remain planned.
+Do not claim durable one-use access outside a trusted ledger and its journal.
 Neither these pure functions nor Python object privacy protect against a hostile host.
 
 ## T0 validation
