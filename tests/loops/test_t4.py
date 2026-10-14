@@ -227,7 +227,7 @@ def test_invalid_nas_candidates_leave_ledger_unchanged(
             environment_hash="c" * 64,
             budget=12,
         )
-    assert ledger.query() == ()
+    assert ledger.query_all() == ()
 
 
 def test_evaluator_rejects_forged_score_program_and_frozen_inputs(
@@ -269,7 +269,7 @@ def test_failure_is_recorded_not_scored(
     )
     with pytest.raises(ContractError):
         asyncio.run(env.step(LoopAction(777)))
-    runs = ledger.query()
+    runs = ledger.query_all()
     assert len(runs) == 1
     assert runs[0].status is Status.FAILED
     assert runs[0].result is None
@@ -478,7 +478,7 @@ def test_held_out_evaluator_scores_once_as_final_evaluator(
     assert [pair.candidate.metric.value for pair in pairs] == [59, 59]
     assert {pair.candidate.metric.split for pair in pairs} == {"held_out"}
     assert pairs[0].candidate.inputs.candidate_hash == candidate
-    runs = ledger.query()
+    runs = ledger.query_all()
     assert len(runs) == 4
     assert {run.inputs.phase for run in runs} == {"held_out"}
     assert {run.inputs.data_hash for run in runs} == {evaluator.spec.data_hash}
@@ -512,7 +512,7 @@ def test_held_out_evaluator_rejects_mismatched_inputs(
     forged = replace(plan, template=selection_data)
     with pytest.raises(ContractError, match="differs from the frozen held-out task"):
         asyncio.run(evaluator(candidate, forged))
-    assert ledger.query() == ()
+    assert ledger.query_all() == ()
 
 
 def test_held_out_evaluator_requires_the_same_candidates(

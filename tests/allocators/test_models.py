@@ -29,6 +29,22 @@ def test_cache_aliases_do_not_inflate_evidence(ledger: Ledger) -> None:
     assert Greedy("1x").select(state).jobs == (job(loop, 0, seed=1),)
 
 
+def test_snapshot_from_a_full_ledger_never_reselects_finished_work(
+    ledger: Ledger,
+) -> None:
+    loop = T0()
+    pool = tuple(job(loop, index) for index in range(120))
+    for offered in pool[:110]:
+        complete(ledger, loop.spec, offered, 1.0)
+    assert len(ledger.query(limit=100)) == 100  # A default-sized page misses 10.
+    state = snapshot(loop, ledger, pool, budget=1000, slots=120)
+    assert len(state.evidence) == 110
+    chosen = Greedy("1x").select(state).jobs
+    assert {item.inputs.hash for item in chosen} == {
+        item.inputs.hash for item in pool[110:]
+    }
+
+
 def test_pending_and_failed_inputs_are_not_selected_or_scored(ledger: Ledger) -> None:
     loop = T0()
     pending, failed, fresh = tuple(job(loop, index) for index in range(3))
@@ -37,10 +53,10 @@ def test_pending_and_failed_inputs_are_not_selected_or_scored(ledger: Ledger) ->
     ledger.start_stage(run.id, "execution")
     ledger.fail(run.id, "worker crashed")
     state = snapshot(loop, ledger, (pending, failed, fresh), slots=3)
-    before = ledger.query()
+    before = ledger.query_all()
     assert state.evidence == ()
     assert RandomSearch("1x").select(state).jobs == (fresh,)
-    assert ledger.query() == before
+    assert ledger.query_all() == before
 
 
 @pytest.mark.parametrize("field", ["data_hash", "budget_amount", "environment_hash"])
@@ -51,7 +67,7 @@ def test_invalid_jobs_are_rejected_before_any_write(ledger: Ledger, field: str) 
     invalid = replace(offered, inputs=replace(offered.inputs, **{field: value}))
     with pytest.raises(ContractError):
         snapshot(loop, ledger, (invalid,))
-    assert ledger.query() == ()
+    assert ledger.query_all() == ()
 
 
 def test_confirm_jobs_are_not_adaptive_selection_work(ledger: Ledger) -> None:

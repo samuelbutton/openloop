@@ -27,7 +27,7 @@ def drive(
     started: list[tuple[str, int]] = []
     for _ in range(100):
         state = AllocationSnapshot(
-            loop.spec, ENVIRONMENT, jobs, ledger.query(limit=10**6), 10**9, slots=10**6
+            loop.spec, ENVIRONMENT, jobs, ledger.query_all(), 10**9, slots=10**6
         )
         allocation = policy.select(state)
         if not allocation.jobs:
@@ -55,7 +55,9 @@ def test_three_rung_halving_promotes_nine_three_one(ledger: Ledger) -> None:
     rank = {candidate: index for index, candidate in enumerate(candidates)}
     started = drive(policy, loop, ledger, jobs, rank)
     assert started == [("1", 9), ("3", 3), ("9", 1)]
-    ran = {(run.inputs.fidelity, run.inputs.candidate_hash) for run in ledger.query()}
+    ran = {
+        (run.inputs.fidelity, run.inputs.candidate_hash) for run in ledger.query_all()
+    }
     assert {candidate for fidelity, candidate in ran if fidelity == "3"} == set(
         candidates[:3]
     )
@@ -90,4 +92,4 @@ def test_five_rung_hyperband_runs_every_published_bracket_size(
         ("81", 5),
     ]  # fmt: skip
     assert sum(int(fidelity) * count for fidelity, count in started) == 1902
-    assert len(ledger.query(limit=10**6)) == sum(count for _, count in started)
+    assert len(ledger.query_all()) == sum(count for _, count in started)

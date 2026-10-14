@@ -37,7 +37,7 @@ def test_probe_forces_measurement_and_persists_match(
     assert repeat.status == "succeeded"
     with Ledger(tmp_path / "ledger.sqlite3") as reopened:
         assert reopened.probes(baseline.id) == (report,)
-        assert len(reopened.query(purpose="replication")) == 1
+        assert len(reopened.query_all(purpose="replication")) == 1
 
 
 def test_probe_drift_disables_cache_for_deterministic_inputs(
@@ -79,7 +79,7 @@ def test_probe_failure_is_recorded(ledger, finish, inputs, result):
 
     with pytest.raises(RuntimeError, match="Runner failed"):
         run_probe(ledger, baseline.id, crash)
-    failed = ledger.query(status="failed", purpose="replication")
+    failed = ledger.query_all(status="failed", purpose="replication")
     assert len(failed) == 1
     assert failed[0].events[-1].payload["reason"] == "RuntimeError: Runner failed"
     assert ledger.probes(baseline.id) == ()
@@ -94,7 +94,7 @@ def test_probe_interruption_is_recorded(ledger, finish, inputs, result):
 
     with pytest.raises(KeyboardInterrupt):
         run_probe(ledger, baseline.id, interrupt)
-    (failed,) = ledger.query(status="failed", purpose="replication")
+    (failed,) = ledger.query_all(status="failed", purpose="replication")
     assert failed.events[-1].payload["reason"] == "KeyboardInterrupt: stop"
 
 
@@ -107,7 +107,7 @@ def test_non_result_return_fails_the_replication(ledger, finish, inputs, result)
             baseline.id,
             lambda _: {"val_bpb": 1.75},  # pyright: ignore[reportArgumentType]
         )
-    (failed,) = ledger.query(status="failed", purpose="replication")
+    (failed,) = ledger.query_all(status="failed", purpose="replication")
     assert "InvalidInputError" in failed.events[-1].payload["reason"]
 
 
@@ -120,4 +120,4 @@ def test_invalid_probe_does_not_admit_work(ledger, finish, inputs, result):
         run_probe(ledger, queued.id, lambda _: result)
     with pytest.raises(NotFoundError):
         run_probe(ledger, "missing", lambda _: result)
-    assert ledger.query(purpose="replication") == ()
+    assert ledger.query_all(purpose="replication") == ()

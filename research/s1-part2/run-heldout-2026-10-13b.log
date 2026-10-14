@@ -1,0 +1,29 @@
+S1p2-A3 1/11: seed_completion 8f00506 seed 2004 attempt 1/3
+S1p2-A3 2/11: heldout 1d83776 seed 3000 attempt 1/3
+S1p2-A3 3/11: heldout 1d83776 seed 3001 attempt 1/3
+S1p2-A3 4/11: heldout bc5cdc1 seed 3000 attempt 1/3
+S1p2-A3 5/11: heldout bc5cdc1 seed 3002 attempt 1/3
+Traceback (most recent call last):
+  File "/Users/sambutton/code/samuelbutton/openloop/research/audit_heldout_valid.py", line 592, in <module>
+    main()
+  File "/Users/sambutton/code/samuelbutton/openloop/research/audit_heldout_valid.py", line 588, in main
+    asyncio.run(execute(source, python, prepared, args.output.resolve()))
+  File "/Users/sambutton/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Users/sambutton/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sambutton/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/sambutton/code/samuelbutton/openloop/research/audit_heldout_valid.py", line 525, in execute
+    await run_slot(attempt_once, settle, max_attempts=cap)
+  File "/Users/sambutton/code/samuelbutton/openloop/src/openloop/studies/validity.py", line 160, in run_slot
+    attempt = await attempt_once(number)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sambutton/code/samuelbutton/openloop/research/audit_heldout_valid.py", line 416, in attempt_once
+    audit.stop_for_memory(
+  File "/Users/sambutton/code/samuelbutton/openloop/research/audit_m4_pro.py", line 491, in stop_for_memory
+    raise MemoryGuardTripped(f"Memory guard tripped: {trip.reason}")
+audit_m4_pro.MemoryGuardTripped: Memory guard tripped: system free memory below 15% for 2 consecutive samples

@@ -193,7 +193,7 @@ time.sleep(3600)
             os.kill(int(marker.read_text()), 0)
 
     asyncio.run(scenario())
-    assert len(ledger.query(status="failed")) == 1
+    assert len(ledger.query_all(status="failed")) == 1
     assert asyncio.run(env.initial_observation()).remaining_budget == 0
 
 

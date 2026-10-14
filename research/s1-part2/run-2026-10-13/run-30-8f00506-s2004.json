@@ -1,0 +1,32 @@
+{
+  "index": 30,
+  "arm": "8f00506",
+  "seed": 2004,
+  "program_sha256": "f451ca2d3ee50b5cd67132cf10a9689e67668fb9f28943b20030efc2c0ce04a9",
+  "ledger_run_id": "dfea20b2f20e4ef299c339d87e1a5b7f",
+  "execution": {
+    "job_id": "e9ba20cffeb74ce1823ccc1e193ffd43",
+    "input_hash": "5b91f70b6f10cfc65b186648f2b211ba73c3c8d2c003395c7a788480d5988cb7",
+    "state": "failed",
+    "exit_code": 1,
+    "started_at": "2026-10-13T04:00:13.491476+00:00",
+    "finished_at": "2026-10-13T04:00:13.503670+00:00",
+    "elapsed_seconds": 0.012209499720484018,
+    "peak_rss_bytes": 2293760,
+    "error": null,
+    "artifacts": [
+      {
+        "path": "executor/e9ba20cffeb74ce1823ccc1e193ffd43/stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "executor/e9ba20cffeb74ce1823ccc1e193ffd43/stderr",
+        "sha256": "eedcf19e49e745ab06de9616f9b974957cce6dc7f98fa6907df7fd1c65b5d7dc",
+        "size_bytes": 1223
+      }
+    ]
+  },
+  "summary": null,
+  "failure": "ExecutorError: failed: None"
+}

@@ -62,7 +62,7 @@ async def allocate(study: T0Study, ledger: Ledger) -> ScreenOutcome:
             loop.spec,
             study.environment,
             jobs,
-            ledger.query(limit=10**6),
+            ledger.query_all(),
             10**6,
             slots=100,
         )
@@ -115,7 +115,7 @@ async def run_trial(trial: int, ledger: Ledger, *, gain: float | None) -> Trial:
     verified = False
     if selected is not None:
         verified = (await campaign.finalize(study.pairs)).verdict is Verdict.VERIFIED
-    seeds = {run.inputs.seed for run in ledger.query(limit=10**6)}
+    seeds = {run.inputs.seed for run in ledger.query_all()}
     return Trial(study, campaign, outcome, seeds, verified, selected)
 
 
@@ -151,7 +151,7 @@ def test_planted_gain_is_screened_in_then_confirmed_and_verified(
         assert confirmed[study.improvement or ""].verdict is Verdict.PROMOTE
         assert trial.campaign.confirmation_set == tuple(sorted(outcome.survivors))
         # Screen evidence is the allocator's ledger runs, not decider samples.
-        run_ids = {run.id for run in ledger.query(limit=10**6)}
+        run_ids = {run.id for run in ledger.query_all()}
         assert all(set(ref) <= run_ids for ref in outcome.evidence.values())
         assert trial.allocator_seeds == set(outcome.seeds) == {100, 101, 102, 103}
         assert trial.allocator_seeds.isdisjoint(protocol.confirm.seeds)

@@ -1,0 +1,15 @@
+{
+  "purpose": "S1 part 2 held-out phase: evaluation-only shard. Never training data.",
+  "dataset": "karpathy/climbmix-400b-shuffle",
+  "file": "shard_05000.parquet",
+  "url": "https://huggingface.co/datasets/karpathy/climbmix-400b-shuffle/resolve/main/shard_05000.parquet",
+  "size_bytes": 91420038,
+  "sha256": "855893202a317b3946bbe21abccf2540843ea2e27e5b3499598e135a1ca41fa9",
+  "rows": 83968,
+  "row_groups": 82,
+  "columns": ["text"],
+  "downloaded_at_utc": "2026-10-13T09:32:40Z to 2026-10-13T09:32:44Z",
+  "size_matches_head_request_of_2026-10-12": true,
+  "not_in_training_snapshot": "research/artifacts/autoresearch-mlx/data_manifest.json lists shards 00000 to 00009 and 06542 only",
+  "storage_rule": "Keep this directory outside ~/.cache/autoresearch/data. The upstream loader treats every parquet file there as training data. The parquet file is git-ignored; this manifest is tracked."
+}

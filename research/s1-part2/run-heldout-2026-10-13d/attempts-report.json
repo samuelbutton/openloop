@@ -1,0 +1,229 @@
+{
+  "attempts": [
+    {
+      "slot": 1,
+      "arm": "8f00506",
+      "seed": 2004,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13b",
+      "receipt": "run-01-seed_completion-8f00506-s2004-a1.json",
+      "receipt_sha256": "be1142a776494c434d6fce57207e97fb43fc055d3733320f87150fa732268fce",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 9.369105100631714e-07
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 2,
+      "arm": "1d83776",
+      "seed": 3000,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13b",
+      "receipt": "run-02-heldout-1d83776-s3000-a1.json",
+      "receipt_sha256": "85267bf12ab9efdf07b0642c5c79c49091d9b331ba3890a2eb154e33d50b4872",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.05645170249044895
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 3,
+      "arm": "1d83776",
+      "seed": 3001,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13b",
+      "receipt": "run-03-heldout-1d83776-s3001-a1.json",
+      "receipt_sha256": "821a030db5c8668a63acbe7aeb8e0a1b47b1d005f3d15af2c15a119e44ff7fa9",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.007182305213063955
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 4,
+      "arm": "bc5cdc1",
+      "seed": 3000,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13b",
+      "receipt": "run-04-heldout-bc5cdc1-s3000-a1.json",
+      "receipt_sha256": "6c0a477d577fcf1d8a6a980fa74ad6886de19625c5644145d9ec9359ad735636",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.0072616892866790295
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 5,
+      "arm": "bc5cdc1",
+      "seed": 3002,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13b",
+      "receipt": "run-05-heldout-bc5cdc1-s3002-a1.json",
+      "receipt_sha256": "ef9dcda90ab4c823625db4e0e4d3d37cc17edb82350586a6b4a5ee88d9759424",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.003890861291438341
+      },
+      "failure": "memory guard: system free memory below 15% for 2 consecutive samples",
+      "has_result": false,
+      "used_in_analysis": false
+    },
+    {
+      "slot": 5,
+      "arm": "bc5cdc1",
+      "seed": 3002,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13c",
+      "receipt": "run-05-heldout-bc5cdc1-s3002-a1.json",
+      "receipt_sha256": "a752a0e1bedb25631aa6ed5ad1e1abdce1fd6835b097d7e6379e8d5272eb4163",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.0
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 6,
+      "arm": "1d83776",
+      "seed": 3004,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13c",
+      "receipt": "run-06-heldout-1d83776-s3004-a1.json",
+      "receipt_sha256": "fec95496219c07b15d71970cf74a11ef586d43ee7f442707ebe03aafee7a9de5",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 1.2479722499847412e-07
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 7,
+      "arm": "1d83776",
+      "seed": 3003,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13c",
+      "receipt": "run-07-heldout-1d83776-s3003-a1.json",
+      "receipt_sha256": "899b427e10180f8b0bcfd1568d25d9fd15de837ae2819fc13faf761447d345e5",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 2.896413207054138e-07
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 8,
+      "arm": "bc5cdc1",
+      "seed": 3001,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13c",
+      "receipt": "run-08-heldout-bc5cdc1-s3001-a1.json",
+      "receipt_sha256": "2a4b2856943665712cad5613af75486afbec35c02569bb7a2408a6c3ecaceb25",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.0
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 9,
+      "arm": "bc5cdc1",
+      "seed": 3004,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13c",
+      "receipt": "run-09-heldout-bc5cdc1-s3004-a1.json",
+      "receipt_sha256": "0ea80722ded64cb1a495959aea860b34a43e26626395c6c6aa530c5142b7cf40",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.053690298926085234
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 10,
+      "arm": "1d83776",
+      "seed": 3002,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13c",
+      "receipt": "run-10-heldout-1d83776-s3002-a1.json",
+      "receipt_sha256": "0139359e83b6c743b373e67266cbdf89dfaf8ef4b5e0773a2a0f1d4f24cbf996",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.0018181437626481056
+      },
+      "failure": "ExecutorError: failed: None",
+      "has_result": false,
+      "used_in_analysis": false
+    },
+    {
+      "slot": 11,
+      "arm": "bc5cdc1",
+      "seed": 3003,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13c",
+      "receipt": "run-11-heldout-bc5cdc1-s3003-a1.json",
+      "receipt_sha256": "35bb9674932c8eb6bfa43b3066809d08ca6ae3c36d394b4bcf910f02df30f04a",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.005067381076514721
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    },
+    {
+      "slot": 10,
+      "arm": "1d83776",
+      "seed": 3002,
+      "attempt": 1,
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13d",
+      "receipt": "run-10-heldout-1d83776-s3002-a1.json",
+      "receipt_sha256": "d37bc6589c213c9ed95bca66d8ab524235d7d723f1454dec3510b33c02ed140a",
+      "validity": {
+        "valid": true,
+        "drift_seconds": 0.005044842604547739
+      },
+      "failure": null,
+      "has_result": true,
+      "used_in_analysis": true
+    }
+  ],
+  "retained": 10,
+  "used_in_analysis": 11,
+  "not_used": 2,
+  "prior_attempts_not_retained": [
+    {
+      "receipt": "run-05-heldout-bc5cdc1-s3002-a1.json",
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13b",
+      "receipt_sha256": "ef9dcda90ab4c823625db4e0e4d3d37cc17edb82350586a6b4a5ee88d9759424",
+      "reason": "failed attempt: memory guard: system free memory below 15% for 2 consecutive samples"
+    },
+    {
+      "receipt": "run-10-heldout-1d83776-s3002-a1.json",
+      "source_directory": "research/s1-part2/run-heldout-2026-10-13c",
+      "receipt_sha256": "0139359e83b6c743b373e67266cbdf89dfaf8ef4b5e0773a2a0f1d4f24cbf996",
+      "reason": "failed attempt: ExecutorError: failed: None"
+    }
+  ]
+}

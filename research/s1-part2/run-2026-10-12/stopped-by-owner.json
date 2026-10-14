@@ -1,0 +1,10 @@
+{
+  "observed_at": "2026-10-13T00:54:27.479091+00:00",
+  "source": "explicit owner instruction in chat",
+  "request": "ok that went to red, stop it now",
+  "reason": "macOS memory pressure reached red during run 2/35 (baseline arm, seed 2002)",
+  "method": "SIGINT then SIGKILL of the coordinator and training worker; no interruption record was written by the runner",
+  "completed_runs": 1,
+  "incomplete_run": "run 2/35 baseline seed 2002 (left in ledger state 'running', no result)",
+  "resume_authorized": false
+}

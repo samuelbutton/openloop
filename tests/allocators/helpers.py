@@ -35,7 +35,7 @@ def snapshot(
     slots: int = 1,
 ) -> AllocationSnapshot:
     return AllocationSnapshot(
-        loop.spec, ENVIRONMENT, jobs, ledger.query(), budget, slots=slots
+        loop.spec, ENVIRONMENT, jobs, ledger.query_all(), budget, slots=slots
     )
 
 

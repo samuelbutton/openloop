@@ -131,13 +131,13 @@ def test_hyperband_stops_instead_of_skipping_to_a_cheaper_bracket(
     for _ in range(2):
         step = policy.select(
             AllocationSnapshot(
-                loop.spec, ENVIRONMENT, jobs, ledger.query(limit=1000), 100, slots=10
+                loop.spec, ENVIRONMENT, jobs, ledger.query_all(), 100, slots=10
             )
         )
         for offered in step.jobs:
             complete(ledger, loop.spec, offered, 1.0)
     state = AllocationSnapshot(
-        loop.spec, ENVIRONMENT, jobs, ledger.query(limit=1000), 100, slots=10
+        loop.spec, ENVIRONMENT, jobs, ledger.query_all(), 100, slots=10
     )
     stopped = policy.select(state)
     # The next bracket's first rung costs 6 and fits; the unfinished one does not.
@@ -178,7 +178,7 @@ def test_rank_worst_never_promotes_a_failure_and_keeps_it_out_of_the_scores(
     assert len(promoted.jobs) == 2
     assert high[0] not in promoted.jobs
     assert high[2] in promoted.jobs
-    assert len(ledger.query()) == 4
+    assert len(ledger.query_all()) == 4
 
 
 def test_rank_worst_with_too_few_scores_promotes_fewer_and_can_end_empty(
