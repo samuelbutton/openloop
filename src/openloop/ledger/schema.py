@@ -6,10 +6,11 @@ The storage version is independent of the input identity version.
 import sqlite3
 from enum import StrEnum
 
+from .activities import ActivityKind
 from .errors import SchemaError
 from .records import EventKind, PreparationStage, Purpose, Stage, Status
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 TABLES = (
     "experiment",
     "attempt",
@@ -18,6 +19,7 @@ TABLES = (
     "event",
     "probe",
     "preparation",
+    "activity",
 )
 
 
@@ -89,33 +91,67 @@ _DDL = (
     """,
 )
 
+_ACTIVITY_DDL = f"""CREATE TABLE activity (
+    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL CHECK ({_in("kind", ActivityKind)}),
+    subject_hash TEXT NOT NULL, timestamp TEXT NOT NULL, payload TEXT NOT NULL,
+    request_key TEXT UNIQUE, parent_sequence INTEGER REFERENCES activity(sequence)
+)"""
+_ACTIVITY_INDEX = "CREATE INDEX activity_subject ON activity(subject_hash, sequence)"
+
+
+def _protect(db: sqlite3.Connection, table: str) -> None:
+    for operation in ("UPDATE", "DELETE"):
+        db.execute(f"""
+            CREATE TRIGGER {table}_{operation.lower()}
+            BEFORE {operation} ON {table}
+            BEGIN SELECT RAISE(ABORT, 'append-only ledger'); END
+        """)
+
 
 def _create(db: sqlite3.Connection) -> None:
     for statement in _DDL:
         db.execute(statement)
+    db.execute(_ACTIVITY_DDL)
+    db.execute(_ACTIVITY_INDEX)
     for table in TABLES:
-        for operation in ("UPDATE", "DELETE"):
-            db.execute(f"""
-                CREATE TRIGGER {table}_{operation.lower()}
-                BEFORE {operation} ON {table}
-                BEGIN SELECT RAISE(ABORT, 'append-only ledger'); END
-            """)
+        _protect(db, table)
     db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
-def ensure_schema(db: sqlite3.Connection) -> None:
-    """Create an empty database or validate an existing one.
+def stored_version(db: sqlite3.Connection) -> int:
+    """Read the storage version without changing anything."""
+    return db.execute("PRAGMA user_version").fetchone()[0]
 
-    Call inside a write transaction.
+
+def supports_activity(version: int) -> bool:
+    return version == SCHEMA_VERSION
+
+
+def ensure_schema(db: sqlite3.Connection, *, migrate: bool = False) -> int:
+    """Create an empty database or validate an existing one; return its version.
+
+    Call inside a write transaction. A version-2 database is upgraded only when
+    `migrate` is true; otherwise it is left exactly as found.
     """
-    version = db.execute("PRAGMA user_version").fetchone()[0]
+    version = stored_version(db)
     if version == 0:
         if db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table'").fetchone():
             raise SchemaError("Refusing to initialize an unrelated database")
         _create(db)
-    elif version != SCHEMA_VERSION:
-        # A future migration would upgrade `version` step by step here.
+        return SCHEMA_VERSION
+    if version == 2:
+        if not migrate:
+            return version
+        db.execute(_ACTIVITY_DDL)
+        db.execute(_ACTIVITY_INDEX)
+        _protect(db, "activity")
+        db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        return SCHEMA_VERSION
+    if version != SCHEMA_VERSION:
         raise SchemaError(
             f"Unsupported ledger schema version {version}; "
-            f"this release reads version {SCHEMA_VERSION} and has no migration"
+            f"this release reads version {SCHEMA_VERSION} "
+            "and has no migration from that version"
         )
+    return version
