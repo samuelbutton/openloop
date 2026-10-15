@@ -135,6 +135,13 @@ The [agent toolbelt](docs/TOOLBELT.md) exposes `run_diff`, `metric_query`, and
 ledger read-only, excludes held-out measurements, and maps committed Python
 definitions without executing source. The guide includes setup and tool contracts.
 
+## Researcher UI
+
+The [local UI](docs/UI.md) shows experiment lineage, endpoint curves with observed
+seed variation bands, and run diffs. It reads the ledger without changing it.
+Start it with `uv run python -m openloop.ui --ledger /absolute/path/ledger.sqlite3`.
+Held-out measurements remain excluded.
+
 ## Frozen training data
 
 The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,

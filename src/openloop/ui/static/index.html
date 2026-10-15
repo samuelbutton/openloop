@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Openloop · Experiments</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#top"
+        ><span class="brand-mark">∞</span> openloop<span class="version"
+          >v0</span
+        ></a
+      >
+      <p class="sidebar-label">RESEARCH WORKSPACE</p>
+      <nav aria-label="Workspace">
+        <a href="#lineage"><span>◈</span> Experiment graph</a>
+        <a href="#curves"><span>⌁</span> Metric curves</a>
+        <a href="#diff"><span>⇄</span> Run diff</a>
+      </nav>
+      <div class="sidebar-note">
+        <span class="status-dot"></span> Local workspace
+        <p>Selection evidence<br />Read-only access</p>
+      </div>
+    </aside>
+    <main id="top">
+      <header class="topbar">
+        <div>
+          Workspace <span class="slash">/</span> <strong>Experiments</strong>
+        </div>
+        <span class="pill">● Read-only</span>
+      </header>
+      <div class="page">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">OBSERVE · COMPARE · UNDERSTAND</p>
+            <h1>Every experiment has a story.</h1>
+            <p class="subtitle">
+              Follow the evidence from one run to the next.
+            </p>
+          </div>
+          <button id="refresh" class="secondary">↻ Refresh</button>
+        </div>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <p class="source">
+          LEDGER <span id="ledger-name">Connecting…</span
+          ><span id="updated"></span>
+        </p>
+        <div class="stats" aria-label="Ledger summary">
+          <div>
+            <span>SELECTION RUNS</span><strong id="stat-runs">—</strong
+            ><small>Recorded submissions</small>
+          </div>
+          <div>
+            <span>ORIGINAL ATTEMPTS</span><strong id="stat-attempts">—</strong
+            ><small>Cache aliases excluded</small>
+          </div>
+          <div>
+            <span>CACHE LINKS</span><strong id="stat-cache_links">—</strong
+            ><small>Reused execution evidence</small>
+          </div>
+          <div>
+            <span>ACTIVE ATTEMPTS</span><strong id="stat-active">—</strong
+            ><small>Queued or running</small>
+          </div>
+        </div>
+        <section id="lineage" class="panel">
+          <div class="section-heading">
+            <div>
+              <h2>Experiment graph</h2>
+              <p>
+                Recorded parent links and cache reuse. Select a run to inspect
+                it.
+              </p>
+            </div>
+            <span id="graph-count" class="tag">0 nodes</span>
+          </div>
+          <div class="graph-layout">
+            <div>
+              <div
+                id="graph"
+                class="graph"
+                aria-label="Experiment lineage"
+              ></div>
+              <div class="legend">
+                <span><i class="green"></i>Succeeded</span
+                ><span><i class="amber"></i>Running</span
+                ><span><i class="gray"></i>Queued</span
+                ><span><i class="red"></i>Failed</span><span>┄ Cache link</span>
+              </div>
+            </div>
+            <aside id="inspector" class="inspector">
+              <p class="eyebrow">RUN INSPECTOR</p>
+              <h3>Select an experiment</h3>
+              <p>Inputs, scores, and stage times appear here.</p>
+            </aside>
+          </div>
+        </section>
+        <section id="curves" class="panel">
+          <div class="section-heading">
+            <div>
+              <h2>Metric curves <span class="tag soft">mean ± 1 SD</span></h2>
+              <p>
+                Recorded endpoints by requested work budget. Bands describe
+                variation between seeds.
+              </p>
+            </div>
+          </div>
+          <div class="curve-controls">
+            <label
+              >Comparison scope<select
+                id="scope"
+                aria-label="Comparison scope"
+              ></select
+            ></label>
+            <p id="scope-details"></p>
+          </div>
+          <div
+            id="chart"
+            class="chart"
+            aria-label="Metric curves with seed variation bands"
+          ></div>
+          <div id="series-legend" class="legend series-legend"></div>
+          <p class="footnote">
+            Repeats are averaged within each seed. One seed has no band. Bands
+            are not confidence intervals or verification decisions.
+          </p>
+          <details id="point-details">
+            <summary>View point evidence</summary>
+            <div id="point-evidence" class="table-wrap"></div>
+          </details>
+        </section>
+        <section id="diff" class="panel">
+          <div class="section-heading">
+            <div>
+              <h2>Run diff</h2>
+              <p>
+                Inspect what changed. A measured delta does not establish its
+                cause.
+              </p>
+            </div>
+            <span class="tag soft">Validation only</span>
+          </div>
+          <div class="diff-controls">
+            <label
+              >Baseline<select
+                id="baseline"
+                aria-label="Baseline run"
+              ></select></label
+            ><span class="compare-arrow">→</span
+            ><label
+              >Candidate<select
+                id="candidate"
+                aria-label="Candidate run"
+              ></select></label
+            ><button id="compare" class="primary">Compare runs</button>
+          </div>
+          <div id="diff-result" aria-live="polite">
+            <p class="empty">
+              Choose two runs to compare their inputs and validation scores.
+            </p>
+          </div>
+        </section>
+        <footer>
+          <span
+            >openloop <span class="slash">/</span> research infrastructure</span
+          ><span>Held-out measurements stay outside this view.</span>
+        </footer>
+      </div>
+    </main>
+  </body>
+</html>
