@@ -10,6 +10,7 @@ import json
 import sys
 import time
 import tomllib
+from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -50,7 +51,12 @@ def verify_runtime(lock: str) -> dict[str, str]:
     return observed
 
 
-def run_training(loop: T1, job: Job) -> JobOutput:
+def run_training(
+    loop: T1,
+    job: Job,
+    *,
+    training_loader: Callable[[dict[str, object]], object] | None = None,
+) -> JobOutput:
     """Train the exact declared tokens and evaluate on the frozen validation split."""
     from .t1 import (
         EVALUATION_BATCH,
@@ -87,6 +93,8 @@ def run_training(loop: T1, job: Job) -> JobOutput:
             "make_dataloader",
         )
     }
+    if training_loader is not None:
+        namespace["make_dataloader"] = training_loader(prepare)
     exec(compile(job.program, "candidate/train.py", "exec"), namespace)
     training_seconds = namespace["total_training_time"]
     if not isinstance(training_seconds, (int, float)):

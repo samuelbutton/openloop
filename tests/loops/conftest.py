@@ -78,16 +78,13 @@ def evaluate_bpb(model, tokenizer, batch_size):
 """
 
 
-@pytest.fixture
-def corpus(tmp_path: Path) -> Corpus:
-    root = tmp_path / "fineweb"
+def frozen_corpus(root: Path, documents: list[str]) -> Corpus:
+    """Write an isolated test snapshot with the production content-split policy."""
     (root / "raw").mkdir(parents=True)
     splits = root / "splits"
     splits.mkdir()
     shard = root / "raw" / "tiny.parquet"
-    pq.write_table(
-        pa.table({"text": [f"document {index}" for index in range(500)]}), shard
-    )
+    pq.write_table(pa.table({"text": documents}), shard)
     manifest = {
         "policy": POLICY,
         "shards": [
@@ -102,6 +99,13 @@ def corpus(tmp_path: Path) -> Corpus:
     manifest["snapshot_sha256"] = json_hash(manifest)
     (root / "manifest.json").write_text(json.dumps(manifest))
     return Corpus.load(root)
+
+
+@pytest.fixture
+def corpus(tmp_path: Path) -> Corpus:
+    return frozen_corpus(
+        tmp_path / "fineweb", [f"document {index}" for index in range(500)]
+    )
 
 
 @pytest.fixture

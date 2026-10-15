@@ -7,8 +7,9 @@ agents and researchers the same tools to inspect the evidence.
 The core has four parts: a content-addressed ledger, an `Env`-shaped loop
 interface, executors, and a decider. Allocation, proposal and implementation,
 research memory, agent tools, and the UI are plugins. See [DESIGN.md](DESIGN.md).
-The current loops are planted truth (T0), MLX pretraining (T1), and recorded
-NAS-Bench-201/HPO-B outcomes (T4). T2 post-training, T3 data mixtures, and cloud
+The current loops are planted truth (T0), MLX pretraining (T1),
+[data mixtures](docs/T3.md) (T3), and recorded
+NAS-Bench-201/HPO-B outcomes (T4). T2 post-training and cloud
 execution remain planned. See the [loop guide](docs/LOOPS.md).
 
 ## Needs and evidence
@@ -23,7 +24,7 @@ its research goal has been achieved.
 | N1 | Make every experiment traceable and reproducible. | [Immutable ledger, provenance, cache and drift probe](docs/LEDGER.md). |
 | N2 | Check whether an improvement is real before using it. | [Noise-aware decisions](docs/DECIDER.md); measured S1 evidence below. |
 | N3 | Direct parallel compute toward useful experiments. | [Five allocator policies](docs/ALLOCATORS.md) and [mock replay](docs/MOCK_EXECUTOR.md). Policy performance and native scale remain unmeasured. |
-| N4 | Connect architecture, data, evaluation, and training loops. | [Shared loop contract](docs/LOOPS.md) and [T4 adapters](docs/T4.md). T3 composition remains planned. |
+| N4 | Connect architecture, data, evaluation, and training loops. | [Shared loop contract](docs/LOOPS.md), [T3 data mixtures](docs/T3.md), and [T4 adapters](docs/T4.md). Native composition gains remain unmeasured. |
 | N5 | Reduce time from hypothesis to verified decision. | [Stage timestamps](docs/LEDGER.md) and [researcher UI](docs/UI.md). Researcher time savings remain unmeasured. |
 | N6 | Let agents operate while people set direction. | [Agent toolbelt](docs/TOOLBELT.md) and [proposer/implementer operators](docs/OPERATORS.md). |
 | N7 | Use verified history to select the next experiment. | [Research memory](docs/MEMORY.md). Its effect on research progress remains unmeasured. |
@@ -68,7 +69,7 @@ datasets, budgets, and analyses; their scores must not be pooled.
 overfit detection, S5 loop composition, and S6 scale transfer. Commit the protocol
 and each study's complete run manifest before collecting its study evidence.
 Study execution and spending need separate approval. The protocol records the
-missing T3, T2, CUDA, and held-out isolation prerequisites.
+T3 freeze requirements and the missing T2, CUDA, and held-out isolation prerequisites.
 
 ## Development
 
