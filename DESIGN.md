@@ -239,8 +239,11 @@ T0 uses planted outcomes to test decisions and failures.
 T1 permits changes to declared training constants.
 Its adapter enforces exact token budgets at two fidelities, 8m and 21m tokens, against the pinned upstream source.
 The earlier upstream measurement used a time budget.
-No native token-budget run has been measured through the new adapter.
-Later loops use the same ledger and action types.
+The [shared recipe smoke](research/smoke/README.md) records one native token-budget run.
+T3 varies integer mixture ratios over a frozen catalog of training corpora.
+It reuses T1's training recipe and fixed validation split at the same token budgets.
+The [T3 adapter](docs/T3.md) uses the same ledger and action types; only CPU checks
+have run for this loop. Mixture weights allocate packed token microbatches.
 Combining two accepted changes creates a candidate with two parent references.
 The combination requires its own verification.
 

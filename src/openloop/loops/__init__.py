@@ -18,6 +18,7 @@ from .models import (
 )
 from .t0 import T0, PlantedTruth
 from .t1 import T1, TrainingSource
+from .t3 import T3
 from .t4 import HPOB, NASBench201, TabularLoop
 from .t4_final import HeldOutEvaluator
 
@@ -25,6 +26,7 @@ __all__ = [
     "HPOB",
     "T0",
     "T1",
+    "T3",
     "ContractError",
     "ExperimentEnv",
     "Fidelity",

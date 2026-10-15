@@ -6,22 +6,12 @@ The explicit run method requires an approved native MLX training environment.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
-import json
-import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from openloop.executors import (
-    ArtifactRole,
-    Executor,
-    Limits,
-    ProcessJob,
-    Snapshot,
-    State,
-)
+from openloop.executors import Executor, State
 from openloop.ledger import (
     Direction,
     ExperimentInputs,
@@ -36,11 +26,20 @@ from openloop.ledger.validation import (
     check_text,
     finite_number,
     freeze_object,
-    plain,
 )
 
 from .corpus import Corpus
 from .files import adapter_digest, file_digest
+from .mlx_process import (
+    EXECUTION_KEY,
+    MEMORY_LIMIT_BYTES,
+    WALL_LIMIT_SECONDS,
+    WORKER_LOG_LIMIT_BYTES,
+    run_worker,
+)
+from .mlx_process import (
+    LOG_TAIL_CHARACTERS as LOG_TAIL_CHARACTERS,
+)
 from .models import (
     ContractError,
     Fidelity,
@@ -61,16 +60,10 @@ UPSTREAM_HASHES = {
 SEQUENCE_LENGTH = 2048
 EVALUATION_TOKENS = 1_572_864
 EVALUATION_BATCH = 256
-# The wall limit counts from process start. T1 sets no queue, CPU, or file-size
-# limit: jobs wait for the GPU lane, and training is bounded by wall time.
-WALL_LIMIT_SECONDS = 3600
-MEMORY_LIMIT_BYTES = 16 * 1024**3
-WORKER_LOG_LIMIT_BYTES = 16 * 1024**2
-LOG_TAIL_CHARACTERS = 4_000
-EXECUTION_KEY = "execution"
 FIDELITIES = (Fidelity("8m", 8_388_608), Fidelity("21m", 20_971_520))
 ADAPTER_FILES = (
     "t1.py",
+    "mlx_process.py",
     "training.py",
     "corpus.py",
     "t1_worker.py",
@@ -133,40 +126,6 @@ class TrainingSource:
     @property
     def hash(self) -> str:
         return content_hash({"train.py": self.train, "prepare.py": self.prepare})
-
-
-def _tail(data: bytes) -> str:
-    """Return a bounded end of a worker stream, so failure reasons stay small."""
-    return data.decode("utf-8", errors="replace")[-LOG_TAIL_CHARACTERS:]
-
-
-def _execution_evidence(snapshot: Snapshot) -> Mapping[str, JSONValue]:
-    """Coordinator-observed executor values. Absent values stay absent."""
-    evidence: dict[str, JSONValue] = {
-        "job_id": snapshot.job_id,
-        "state": str(snapshot.state),
-        "logs": {
-            artifact.path.name: {
-                "sha256": artifact.sha256,
-                "size_bytes": artifact.size_bytes,
-            }
-            for artifact in snapshot.artifacts
-            if artifact.role == ArtifactRole.LOG
-        },
-    }
-    for name in ("exit_code", "queued_seconds", "elapsed_seconds", "peak_rss_bytes"):
-        value = getattr(snapshot, name)
-        if value is not None:
-            evidence[name] = value
-    return evidence
-
-
-def _log_digests(snapshot: Snapshot) -> str:
-    return ", ".join(
-        f"{artifact.path.name} sha256={artifact.sha256}"
-        for artifact in snapshot.artifacts
-        if artifact.role == ArtifactRole.LOG
-    )
 
 
 def tokenizer_digest(directory: Path) -> str:
@@ -232,6 +191,11 @@ class T1:
                 "worker_log_limit_bytes": WORKER_LOG_LIMIT_BYTES,
             },
         )
+
+    @property
+    def executor(self) -> Executor | None:
+        """Return the caller-owned executor, if native execution was configured."""
+        return self._executor
 
     @property
     def source(self) -> TrainingSource:
@@ -334,53 +298,9 @@ class T1:
                 "job": job,
             }
         ).encode("utf-8")
-        request = ProcessJob(
-            (str(self.python), "-m", "openloop.loops.t1_worker"),
-            stdin=payload,
-            environment={
-                "PATH": os.defpath,
-                "PYTHONPATH": str(Path(__file__).parents[2]),
-            },
-            reviewed=True,
-            gpu=True,
-            limits=Limits(
-                wall_seconds=WALL_LIMIT_SECONDS,
-                memory_bytes=MEMORY_LIMIT_BYTES,
-                output_bytes=WORKER_LOG_LIMIT_BYTES,
-            ),
+        return await run_worker(
+            payload, self.python, executor, context, module="openloop.loops.t1_worker"
         )
-        identifier = await executor.submit(request, key=context.attempt_id)
-        try:
-            snapshot = await executor.collect(identifier)
-        except asyncio.CancelledError:
-            # collect() is shielded, so a cancelled step must stop its own job;
-            # otherwise training keeps running and holds the GPU lane.
-            await executor.cancel(identifier)
-            raise
-        logs = {
-            artifact.path.name: artifact.path.read_bytes()
-            for artifact in snapshot.artifacts
-            if artifact.role == ArtifactRole.LOG
-        }
-        stdout, stderr = logs.get("stdout", b""), logs.get("stderr", b"")
-        if snapshot.state != State.SUCCEEDED:
-            raise ContractError(
-                f"Training worker failed with exit code {snapshot.exit_code} "
-                f"({snapshot.state}): {snapshot.error or ''}"
-                f"\nexecutor job {snapshot.job_id}; log digests: "
-                f"{_log_digests(snapshot)}"
-                f"\n--- stdout tail ---\n{_tail(stdout)}"
-                f"\n--- stderr tail ---\n{_tail(stderr)}"
-            )
-        records = stdout.decode("utf-8").splitlines()
-        if not records or not records[-1].startswith("OPENLOOP_RESULT "):
-            raise ContractError("Worker omitted its trusted result record")
-        output = plain(json.loads(records[-1].removeprefix("OPENLOOP_RESULT ")))
-        if not isinstance(output, Mapping):
-            raise ContractError("Worker result must be a JSON object")
-        if EXECUTION_KEY in output:
-            raise ContractError(f"Worker receipt must not contain {EXECUTION_KEY!r}")
-        return freeze_object({**output, EXECUTION_KEY: _execution_evidence(snapshot)})
 
     def evaluate(self, job: Job, output: JobOutput) -> Result:
         batch = job.inputs.config[TrainingSetting.TOTAL_BATCH_SIZE]
