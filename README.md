@@ -128,6 +128,13 @@ before publication. Reports include effect statistics, evidence counts, scope,
 and simulation markers. Python queries and a read-only JSON CLI expose the reports.
 Memory is not added to proposer context automatically.
 
+## Agent toolbelt
+
+The [agent toolbelt](docs/TOOLBELT.md) exposes `run_diff`, `metric_query`, and
+`repository_map` through Python and an MCP stdio server. It opens the configured
+ledger read-only, excludes held-out measurements, and maps committed Python
+definitions without executing source. The guide includes setup and tool contracts.
+
 ## Frozen training data
 
 The [FineWeb-Edu corpus](data/fineweb-edu/README.md) uses three pinned shards,
