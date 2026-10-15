@@ -14,8 +14,8 @@ from openloop.executors import (
     Snapshot,
     State,
 )
-from openloop.ledger import JSONValue
-from openloop.ledger.validation import freeze_object, plain
+from openloop.ledger import JSONValue, Metric
+from openloop.ledger.validation import finite_number, freeze_object, plain
 
 from .models import ContractError, JobOutput, RunContext
 
@@ -67,6 +67,7 @@ async def run_worker(
     context: RunContext,
     *,
     module: str,
+    wall_seconds: float = WALL_LIMIT_SECONDS,
 ) -> JobOutput:
     """Execute a reviewed worker, stop on cancellation, and attach observed evidence."""
     request = ProcessJob(
@@ -79,7 +80,7 @@ async def run_worker(
         reviewed=True,
         gpu=True,
         limits=Limits(
-            wall_seconds=WALL_LIMIT_SECONDS,
+            wall_seconds=wall_seconds,
             memory_bytes=MEMORY_LIMIT_BYTES,
             output_bytes=WORKER_LOG_LIMIT_BYTES,
         ),
@@ -116,3 +117,39 @@ async def run_worker(
     if EXECUTION_KEY in output:
         raise ContractError(f"Worker receipt must not contain {EXECUTION_KEY!r}")
     return freeze_object({**output, EXECUTION_KEY: _execution_evidence(snapshot)})
+
+
+def execution_metrics(output: JobOutput) -> tuple[dict[str, Metric], dict[str, str]]:
+    """Validate coordinator evidence; return process metrics and log hashes."""
+    evidence = output.get(EXECUTION_KEY)
+    if not isinstance(evidence, Mapping) or evidence.get("state") != State.SUCCEEDED:
+        raise ContractError("Result lacks executor evidence of a successful job")
+    observed = {
+        "queued_seconds": Metric(
+            finite_number(evidence.get("queued_seconds"), "Queued seconds"),
+            "seconds",
+            split="execution",
+        ),
+        "process_seconds": Metric(
+            finite_number(evidence.get("elapsed_seconds"), "Process seconds"),
+            "seconds",
+            split="execution",
+        ),
+    }
+    if evidence.get("peak_rss_bytes") is not None:
+        observed["peak_rss_bytes"] = Metric(
+            finite_number(evidence["peak_rss_bytes"], "Peak RSS"),
+            "bytes",
+            split="execution",
+        )
+    logs = evidence.get("logs")
+    if not isinstance(logs, Mapping):
+        raise ContractError("Executor evidence lacks log digests")
+    digests: dict[str, str] = {}
+    for role in ("stdout", "stderr"):
+        log = logs.get(role)
+        digest = log.get("sha256") if isinstance(log, Mapping) else None
+        if not isinstance(digest, str):
+            raise ContractError(f"Executor evidence lacks the {role} digest")
+        digests[role] = digest
+    return observed, digests

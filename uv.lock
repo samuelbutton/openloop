@@ -1255,6 +1255,9 @@ dev = [
 toolbelt = [
     { name = "mcp" },
 ]
+training-torch = [
+    { name = "torch" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -1280,6 +1283,7 @@ dev = [
     { name = "ruff", specifier = ">=0.15,<0.16" },
 ]
 toolbelt = [{ name = "mcp", specifier = ">=2,<3" }]
+training-torch = [{ name = "torch", specifier = ">=2.14.1" }]
 
 [[package]]
 name = "opentelemetry-api"

@@ -1,0 +1,83 @@
+{
+  "kind": "engineering_correctness",
+  "recorded_at": "2026-10-15T22:42:57.829008+00:00",
+  "host": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.12.13"
+  },
+  "packages": {
+    "mlx": "0.32.3",
+    "mlx-lm": "0.32.0",
+    "torch": "2.14.1",
+    "numpy": "2.5.3"
+  },
+  "command": "OPENLOOP_TEST_MPS=1 uv run --group training-torch pytest tests/training/test_backends.py -q",
+  "checks": [
+    {
+      "name": "test_loss_and_first_adam_step_match_finite_differences[torch-cross_entropy]",
+      "seconds": 1.079,
+      "passed": true
+    },
+    {
+      "name": "test_loss_and_first_adam_step_match_finite_differences[torch-grpo]",
+      "seconds": 0.006,
+      "passed": true
+    },
+    {
+      "name": "test_loss_and_first_adam_step_match_finite_differences[mlx-cross_entropy]",
+      "seconds": 0.047,
+      "passed": true
+    },
+    {
+      "name": "test_loss_and_first_adam_step_match_finite_differences[mlx-grpo]",
+      "seconds": 0.003,
+      "passed": true
+    },
+    {
+      "name": "test_accumulation_and_optimizer_boundary[torch]",
+      "seconds": 0.002,
+      "passed": true
+    },
+    {
+      "name": "test_accumulation_and_optimizer_boundary[mlx]",
+      "seconds": 0.001,
+      "passed": true
+    },
+    {
+      "name": "test_checkpoint_restores_optimizer_for_next_update[torch]",
+      "seconds": 0.006,
+      "passed": true
+    },
+    {
+      "name": "test_checkpoint_restores_optimizer_for_next_update[mlx]",
+      "seconds": 0.004,
+      "passed": true
+    },
+    {
+      "name": "test_greedy_stop_and_sample_logprob_alignment[torch]",
+      "seconds": 0.002,
+      "passed": true
+    },
+    {
+      "name": "test_greedy_stop_and_sample_logprob_alignment[mlx]",
+      "seconds": 0.002,
+      "passed": true
+    },
+    {
+      "name": "test_bad_batches_and_corrupt_checkpoints_fail_before_update[torch]",
+      "seconds": 0.002,
+      "passed": true
+    },
+    {
+      "name": "test_bad_batches_and_corrupt_checkpoints_fail_before_update[mlx]",
+      "seconds": 0.001,
+      "passed": true
+    },
+    {
+      "name": "test_torch_mps_matches_cpu_when_available",
+      "seconds": 0.285,
+      "passed": true
+    }
+  ]
+}

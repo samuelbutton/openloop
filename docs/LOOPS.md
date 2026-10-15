@@ -9,6 +9,8 @@ It has no reset method.
 The [T4 guide](T4.md) describes NAS-Bench-201 and HPO-B behind this same contract.
 The [T3 guide](T3.md) describes token-weighted data mixtures using T1's training
 recipe, validation corpus, executor, and the same ledger.
+The [T2 guide](T2.md) describes local arithmetic GRPO at 0.5B through a
+[Tinker-shaped training interface](TRAINING.md).
 
 ## Contract
 

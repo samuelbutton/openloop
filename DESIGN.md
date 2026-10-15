@@ -247,6 +247,14 @@ have run for this loop. Mixture weights allocate packed token microbatches.
 Combining two accepted changes creates a candidate with two parent references.
 The combination requires its own verification.
 
+T2 uses the same loop contract for bounded arithmetic GRPO at 0.5B on MLX.
+Its [training contract](docs/TRAINING.md) provides local `forward_backward`,
+`optim_step`, `sample`, and `save_state` operations behind the loop adapter.
+MLX and PyTorch wrap their own autograd and AdamW implementations. They are not
+a hosted Tinker SDK integration. The [T2 guide](docs/T2.md) records the pinned
+model, task splits, token envelopes, and limits of the native engineering smoke.
+CUDA execution and 1.5B post-training remain unverified.
+
 ## Executors
 
 The executor contract provides `submit`, `poll`, `cancel`, and `collect` operations.

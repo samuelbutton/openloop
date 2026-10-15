@@ -1,0 +1,49 @@
+{
+  "kind": "engineering_diagnostic",
+  "rows": [
+    {
+      "task": "What is 14 + 18? Return only <answer>integer</answer>.",
+      "answer": 32,
+      "samples": [
+        {
+          "text": "22",
+          "reward": 0.0
+        },
+        {
+          "text": "integer<li>14 + 18 = 32</li>",
+          "reward": 0.0
+        },
+        {
+          "text": "14 + 18 = 32",
+          "reward": 0.0
+        },
+        {
+          "text": "integer",
+          "reward": 0.0
+        }
+      ]
+    },
+    {
+      "task": "What is 19 - 15? Return only <answer>integer</answer>.",
+      "answer": 4,
+      "samples": [
+        {
+          "text": "4",
+          "reward": 0.0
+        },
+        {
+          "text": "integer",
+          "reward": 0.0
+        },
+        {
+          "text": "0",
+          "reward": 0.0
+        },
+        {
+          "text": "integer",
+          "reward": 0.0
+        }
+      ]
+    }
+  ]
+}

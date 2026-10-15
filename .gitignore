@@ -12,6 +12,8 @@ htmlcov/
 ledger.json
 ledger.sqlite3*
 research/artifacts/account-setup/
+research/t2/models/
+research/t2/run-*/checkpoints/
 .env
 .env.*
 !.env.example

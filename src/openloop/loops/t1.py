@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from openloop.executors import Executor, State
+from openloop.executors import Executor
 from openloop.ledger import (
     Direction,
     ExperimentInputs,
@@ -31,14 +31,14 @@ from openloop.ledger.validation import (
 from .corpus import Corpus
 from .files import adapter_digest, file_digest
 from .mlx_process import (
-    EXECUTION_KEY,
+    LOG_TAIL_CHARACTERS as LOG_TAIL_CHARACTERS,
+)
+from .mlx_process import (
     MEMORY_LIMIT_BYTES,
     WALL_LIMIT_SECONDS,
     WORKER_LOG_LIMIT_BYTES,
+    execution_metrics,
     run_worker,
-)
-from .mlx_process import (
-    LOG_TAIL_CHARACTERS as LOG_TAIL_CHARACTERS,
 )
 from .models import (
     ContractError,
@@ -329,40 +329,7 @@ class T1:
         seconds = finite_number(output.get("training_seconds"), "Training seconds")
         if seconds <= 0:
             raise ContractError("Observed training seconds must be positive")
-        evidence = output.get(EXECUTION_KEY)
-        if (
-            not isinstance(evidence, Mapping)
-            or evidence.get("state") != State.SUCCEEDED
-        ):
-            raise ContractError("Result lacks executor evidence of a successful job")
-        observed = {
-            "queued_seconds": Metric(
-                finite_number(evidence.get("queued_seconds"), "Queued seconds"),
-                "seconds",
-                split="execution",
-            ),
-            "process_seconds": Metric(
-                finite_number(evidence.get("elapsed_seconds"), "Process seconds"),
-                "seconds",
-                split="execution",
-            ),
-        }
-        if evidence.get("peak_rss_bytes") is not None:
-            observed["peak_rss_bytes"] = Metric(
-                finite_number(evidence["peak_rss_bytes"], "Peak RSS"),
-                "bytes",
-                split="execution",
-            )
-        logs = evidence.get("logs")
-        if not isinstance(logs, Mapping):
-            raise ContractError("Executor evidence lacks log digests")
-        digests: dict[str, str] = {}
-        for role in ("stdout", "stderr"):
-            log = logs.get(role)
-            digest = log.get("sha256") if isinstance(log, Mapping) else None
-            if not isinstance(digest, str):
-                raise ContractError(f"Executor evidence lacks the {role} digest")
-            digests[role] = digest
+        observed, digests = execution_metrics(output)
         return Result(
             {
                 self.spec.metric_name: Metric(score, self.spec.metric_unit),

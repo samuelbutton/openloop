@@ -1,0 +1,107 @@
+{
+  "kind": "engineering_correctness",
+  "recorded_at": "2026-10-15T22:57:38.881114+00:00",
+  "host": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.12.13"
+  },
+  "packages": {
+    "mlx": "0.32.3",
+    "mlx-lm": "0.32.0",
+    "torch": "2.14.1",
+    "numpy": "2.5.3"
+  },
+  "command": "OPENLOOP_TEST_MPS=1 uv run --group training-torch pytest tests/training/test_backends.py -q",
+  "source_hashes": {
+    "src/openloop/training/__init__.py": "1383c4da74d66549d7a2aaca9d374bcc10d0f3cf73f2b31917cb655105901e7f",
+    "src/openloop/training/assets.py": "c19b709ee9517b5919fbabbdaff0d008762d5b3ed35efe4db8002129341a27a6",
+    "src/openloop/training/checkpoints.py": "49d471ead347140b143ecc65c41578c0fc601a98f19dce9ceebb6425a1ab7f07",
+    "src/openloop/training/contracts.py": "df539910082ec7e144e550f1cc14818096be927bf251f121d55014233212514c",
+    "src/openloop/training/grpo.py": "3da08d37bfc6dea791d515ab35eba2e95fd9bd57b3bd3404f4034062a48ce5c4",
+    "src/openloop/training/loss.py": "b0efcbe22625de7502c1ad65d242497793aa4ddab41a7cec08010a4845d9dc3b",
+    "src/openloop/training/mlx_backend.py": "bc4f5c3fc89b1d0e57fa1a84dc02718ab0deebc0b156afcbe3a39de919668d2f",
+    "src/openloop/training/mlx_lm_backend.py": "b81b22774a4ac2566d8cbbaa4db1a116abacede33f8938009413af85a1171262",
+    "src/openloop/training/prepare_model.py": "f2226c25330cb1a87986d65365271ee648db6b565486149372c8f46a118bb5f1",
+    "src/openloop/training/torch_backend.py": "b024307006015fc7dfbc5caf0cf95d1f7b0b66da07639b6f95081223fcd30856",
+    "tests/training/conftest.py": "88010820ab3b2222806dabc8321046f139a9ec00238f1e7b258dd3afa7e9f84d",
+    "tests/training/test_backends.py": "d633542d1749558b2cb154ddea6a16f614431c73888735744de53a6a0c350615"
+  },
+  "checks": [
+    {
+      "name": "test_loss_and_first_adam_step_match_finite_differences[torch-cross_entropy]",
+      "seconds": 1.176,
+      "passed": true
+    },
+    {
+      "name": "test_loss_and_first_adam_step_match_finite_differences[torch-grpo]",
+      "seconds": 0.006,
+      "passed": true
+    },
+    {
+      "name": "test_loss_and_first_adam_step_match_finite_differences[mlx-cross_entropy]",
+      "seconds": 0.049,
+      "passed": true
+    },
+    {
+      "name": "test_loss_and_first_adam_step_match_finite_differences[mlx-grpo]",
+      "seconds": 0.003,
+      "passed": true
+    },
+    {
+      "name": "test_accumulation_and_optimizer_boundary[torch]",
+      "seconds": 0.002,
+      "passed": true
+    },
+    {
+      "name": "test_accumulation_and_optimizer_boundary[mlx]",
+      "seconds": 0.001,
+      "passed": true
+    },
+    {
+      "name": "test_checkpoint_restores_optimizer_for_next_update[torch]",
+      "seconds": 0.007,
+      "passed": true
+    },
+    {
+      "name": "test_checkpoint_restores_optimizer_for_next_update[mlx]",
+      "seconds": 0.005,
+      "passed": true
+    },
+    {
+      "name": "test_greedy_stop_and_sample_logprob_alignment[torch]",
+      "seconds": 0.002,
+      "passed": true
+    },
+    {
+      "name": "test_greedy_stop_and_sample_logprob_alignment[mlx]",
+      "seconds": 0.003,
+      "passed": true
+    },
+    {
+      "name": "test_bad_batches_and_corrupt_checkpoints_fail_before_update[torch]",
+      "seconds": 0.002,
+      "passed": true
+    },
+    {
+      "name": "test_bad_batches_and_corrupt_checkpoints_fail_before_update[mlx]",
+      "seconds": 0.001,
+      "passed": true
+    },
+    {
+      "name": "test_fresh_group_seed_does_not_reuse_a_shifted_token_stream[torch]",
+      "seconds": 0.001,
+      "passed": true
+    },
+    {
+      "name": "test_fresh_group_seed_does_not_reuse_a_shifted_token_stream[mlx]",
+      "seconds": 0.003,
+      "passed": true
+    },
+    {
+      "name": "test_torch_mps_matches_cpu_when_available",
+      "seconds": 0.358,
+      "passed": true
+    }
+  ]
+}

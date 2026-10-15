@@ -18,9 +18,9 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 benchmarks = [
+    {include-group = "training-torch"},
     "gdown>=6.4.1",
     "nas-bench-201>=2.1",
-    "torch>=2.14.1",
     "xgboost>=3.4.1",
 ]
 dev = [
@@ -34,6 +34,9 @@ dev = [
 ]
 toolbelt = [
     "mcp>=2,<3",
+]
+training-torch = [
+    "torch>=2.14.1",
 ]
 
 [tool.ruff]
