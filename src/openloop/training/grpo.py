@@ -169,6 +169,14 @@ class GRPOResult:
         object.__setattr__(self, "rollouts", tuple(self.rollouts))
 
 
+def update_seed(seed: int, step: int) -> int:
+    """Hash seed and update index; offset seeds would share keys across jobs."""
+    digest = content_hash(
+        {"domain": "openloop.grpo.update.v1", "seed": seed, "step": step}
+    )
+    return int(digest[:16], 16) % (2**32 - 8192)
+
+
 def train_grpo(
     client: TrainingClient,
     reference: TrainingClient,
@@ -204,7 +212,7 @@ def train_grpo(
             sampling.max_tokens,
             sampling.num_samples,
             1.0,
-            sampling.seed + step * 16,
+            update_seed(sampling.seed, step),
             sampling.stop_tokens,
         )
         samples = client.sample(prompt, params)

@@ -199,11 +199,15 @@ class TorchBackend:
             writer=write,
         )
 
-    def load_state(self, path: Path) -> None:
+    def load_state(self, path: Path, sha256: str | None = None) -> None:
         if self._pending:
             raise TrainingError("Restore only at an optimizer boundary")
         step = verify_checkpoint(
-            path, backend="torch", model_hash=self._model_hash, params=self._params
+            path,
+            backend="torch",
+            model_hash=self._model_hash,
+            params=self._params,
+            sha256=sha256,
         )
         state = self._torch.load(
             path / "state.pt", map_location=self._device, weights_only=True

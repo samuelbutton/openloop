@@ -12,7 +12,7 @@ Tinker SDK and do not call its service. No API key is needed.
 | `forward_backward(data, config)` | Accumulate gradients without changing parameters. Return the loss and number of completion targets. |
 | `optim_step()` | Clip the accumulated global gradient norm, apply AdamW, and clear gradients. Refuse a step without gradients. |
 | `save_state(path)` | Publish a new checkpoint directory at an optimizer boundary. Include optimizer moments and step count. Refuse overwrite. |
-| `load_state(path)` | Verify backend, model identity, optimizer settings, and payload hashes before loading. |
+| `load_state(path, sha256=None)` | Verify the manifest against the recorded checkpoint digest when given, then backend, model identity, optimizer settings, and payload hashes before loading. |
 | `logprobs(datum)` | Score completion targets under the unchanged current policy without gradients. |
 
 The caller owns one client and serializes its operations. There are no request
@@ -65,7 +65,7 @@ row = Datum(tokens=(0, 1, 2, 3), completion_start=2)
 result = client.forward_backward((row,), LossConfig(Objective.CROSS_ENTROPY))
 update = client.optim_step()
 checkpoint = client.save_state(checkpoint_path)
-client.load_state(checkpoint.path)
+client.load_state(checkpoint.path, checkpoint.sha256)
 ```
 
 The model must return `[batch, sequence, vocabulary]` logits. Transformers-style

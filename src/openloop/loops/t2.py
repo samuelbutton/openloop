@@ -19,7 +19,7 @@ from openloop.ledger import (
     canonical_json,
     content_hash,
 )
-from openloop.ledger.validation import finite_number, freeze_object
+from openloop.ledger.validation import check_digest, finite_number, freeze_object
 from openloop.training import AdamParams, LossConfig, SamplingParams
 from openloop.training.assets import ModelSnapshot
 from openloop.training.grpo import ArithmeticData
@@ -45,13 +45,23 @@ T2_FILES = (
 DEFAULT_CONFIG: Mapping[str, JSONValue] = freeze_object(
     {
         "learning_rate": 1e-4,
-        "clip_epsilon": 0.2,
         "kl_beta": 0.04,
         "group_size": 4,
         "max_new_tokens": 64,
     }
 )
 WALL_SECONDS = 1800
+# One optimizer step per fresh group makes the PPO ratio exactly 1, so the clip
+# never binds. It is recorded but frozen rather than offered as a search key.
+CLIP_EPSILON = 0.2
+TOKENIZER_FILES = (
+    "added_tokens.json",
+    "merges.txt",
+    "special_tokens_map.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "vocab.json",
+)
 
 
 @dataclass(frozen=True)
@@ -83,7 +93,9 @@ class T2:
             metric_name="pass_rate",
             metric_unit="fraction",
             direction=Direction.MAXIMIZE,
-            tokenizer_hash=content_hash(model.files),
+            tokenizer_hash=content_hash(
+                {name: model.files[name] for name in TOKENIZER_FILES}
+            ),
             execution={
                 "backend": "mlx",
                 "device": "gpu",
@@ -92,6 +104,7 @@ class T2:
                 "model_snapshot": model.hash,
                 "lora": LORA_CONFIG,
                 "lora_layers": LORA_LAYERS,
+                "clip_epsilon": CLIP_EPSILON,
                 "max_prompt_tokens": 128,
                 "wall_limit_seconds": WALL_SECONDS,
                 "evaluation_tasks": len(data.validation),
@@ -111,7 +124,6 @@ class T2:
             raise ContractError("Candidate changes a frozen T2 setting")
         settings = dict(DEFAULT_CONFIG) | dict(config)
         learning_rate = finite_number(settings["learning_rate"], "Learning rate")
-        clip = finite_number(settings["clip_epsilon"], "Clip epsilon")
         beta = finite_number(settings["kl_beta"], "KL beta")
         group, limit = settings["group_size"], settings["max_new_tokens"]
         if type(group) is not int or not 2 <= group <= 8 or type(limit) is not int:
@@ -119,7 +131,7 @@ class T2:
                 "T2 group size must be 2-8 and generation limit an integer"
             )
         AdamParams(learning_rate=learning_rate)
-        LossConfig(clip_epsilon=clip, kl_beta=beta)
+        LossConfig(clip_epsilon=CLIP_EPSILON, kl_beta=beta)
         SamplingParams(max_tokens=limit, num_samples=group)
         return freeze_object(settings)
 
@@ -220,6 +232,7 @@ class T2:
         checkpoint = output.get("checkpoint_sha256")
         if not isinstance(checkpoint, str):
             raise ContractError("T2 lacks a saved training checkpoint")
+        check_digest(checkpoint)
         return Result(
             {
                 "pass_rate": Metric(

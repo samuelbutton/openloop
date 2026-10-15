@@ -16,7 +16,7 @@ from openloop.training.grpo import ArithmeticData, ArithmeticTask, train_grpo
 from openloop.training.mlx_lm_backend import load_mlx_clients
 
 from .models import Job, JobOutput
-from .t2 import T2
+from .t2 import CLIP_EPSILON, T2
 
 RUNTIME_PACKAGES = (
     "mlx",
@@ -72,7 +72,7 @@ def run_posttraining(loop: T2, job: Job, output: Path) -> JobOutput:
             tokenizer.stop_tokens,
         ),
         loss=LossConfig(
-            clip_epsilon=finite_number(config["clip_epsilon"], "Clip epsilon"),
+            clip_epsilon=CLIP_EPSILON,
             kl_beta=finite_number(config["kl_beta"], "KL beta"),
         ),
     )

@@ -64,7 +64,7 @@ class Client:
     def save_state(self, path: Path) -> Checkpoint:
         raise AssertionError("The GRPO driver does not own checkpoint publication")
 
-    def load_state(self, path: Path) -> None:
+    def load_state(self, path: Path, sha256: str | None = None) -> None:
         raise AssertionError("The GRPO driver must not restore a different policy")
 
 
@@ -91,6 +91,27 @@ def test_groups_train_only_on_train_and_evaluate_once() -> None:
     assert result.generated_tokens == 9
     assert result.gradient_tokens == 8
     assert result.validation_pass_rate == 1
+
+
+def test_offset_job_seeds_do_not_share_update_seeds() -> None:
+    data = ArithmeticData((ArithmeticTask(1, 2, "+"),), (ArithmeticTask(4, 3, "-"),))
+
+    def training_seeds(seed: int) -> set[int]:
+        client = Client()
+        train_grpo(
+            client,
+            Client(),
+            Tokenizer(data),
+            data,
+            updates=4,
+            sampling=SamplingParams(max_tokens=16, num_samples=4, seed=seed),
+            loss=LossConfig(),
+        )
+        return {p.seed for p in client.sample_params if p.temperature == 1}
+
+    first, second = training_seeds(42), training_seeds(58)
+    assert len(first) == len(second) == 4
+    assert not first & second
 
 
 @pytest.mark.parametrize(

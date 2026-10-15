@@ -78,6 +78,7 @@ def test_ledger_cache_and_update_fidelities(t2: T2, ledger: Ledger) -> None:
         {"group_size": 1},
         {"max_new_tokens": 257},
         {"learning_rate": 0},
+        {"clip_epsilon": 0.1},
     ],
 )
 def test_frozen_and_invalid_settings_are_rejected(t2: T2, config) -> None:
@@ -105,6 +106,9 @@ def test_evaluation_checks_tokens_tasks_and_coordinator_evidence(t2: T2) -> None
             t2.evaluate(job, receipt(t2) | patch)
     with pytest.raises(ContractError, match="frozen job"):
         t2.evaluate(replace(job, program="unreviewed"), receipt(t2))
+    for checkpoint in (None, "", "none"):
+        with pytest.raises(InvalidInputError):
+            t2.evaluate(job, receipt(t2) | {"checkpoint_sha256": checkpoint})
 
 
 def test_model_drift_and_candidate_identity(t2: T2) -> None:
@@ -117,3 +121,13 @@ def test_model_drift_and_candidate_identity(t2: T2) -> None:
     (t2.model.root / "config.json").write_text("corrupt")
     with pytest.raises(ValueError, match="asset changed"):
         t2.model.verify()
+
+
+def test_tokenizer_identity_covers_only_tokenizer_assets(t2: T2) -> None:
+    def tokenizer_hash(changed: str) -> str | None:
+        files = dict(t2.model.files) | {changed: "d" * 64}
+        model = ModelSnapshot(t2.model.root, files)
+        return replace(t2, model=model).spec.tokenizer_hash
+
+    assert tokenizer_hash("model.safetensors") == t2.spec.tokenizer_hash
+    assert tokenizer_hash("tokenizer.json") != t2.spec.tokenizer_hash
