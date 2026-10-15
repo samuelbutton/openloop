@@ -38,8 +38,9 @@ def save_checkpoint(
             "Another checkpoint writer owns this destination"
         ) from error
     os.close(descriptor)
-    temporary = Path(tempfile.mkdtemp(prefix=f".{path.name}-", dir=path.parent))
+    temporary: Path | None = None
     try:
+        temporary = Path(tempfile.mkdtemp(prefix=f".{path.name}-", dir=path.parent))
         if path.exists():
             raise TrainingError("Checkpoint destination already exists")
         writer(temporary)
@@ -56,7 +57,7 @@ def save_checkpoint(
         temporary.rename(path)
         return Checkpoint(path, digest(path / "manifest.json"))
     finally:
-        if temporary.exists():
+        if temporary is not None and temporary.exists():
             shutil.rmtree(temporary)
         lock.unlink()
 
@@ -67,9 +68,20 @@ def verify_checkpoint(
     backend: str,
     model_hash: str,
     params: AdamParams,
+    sha256: str | None = None,
 ) -> int:
-    """Check backend, model, optimizer settings, and every payload hash."""
-    metadata = json.loads((path / "manifest.json").read_text())
+    """Check manifest digest, backend, model, optimizer settings, and payload hashes."""
+    manifest = path / "manifest.json"
+    try:
+        observed = digest(manifest)
+        metadata = json.loads(manifest.read_text())
+    except (OSError, ValueError) as error:
+        raise TrainingError("Checkpoint manifest is missing or malformed") from error
+    if sha256 is not None and observed != sha256:
+        raise TrainingError("Checkpoint manifest differs from the recorded digest")
+    files = metadata.get("files") if isinstance(metadata, dict) else None
+    if not isinstance(files, dict):
+        raise TrainingError("Checkpoint manifest is missing or malformed")
     if (
         metadata.get("version") != 1
         or metadata.get("backend") != backend
@@ -81,9 +93,12 @@ def verify_checkpoint(
     if type(step) is not int or step < 0:
         raise TrainingError("Checkpoint step must be a nonnegative integer")
     expected_name = "state.pt" if backend == "torch" else "state.safetensors"
-    if set(metadata["files"]) != {expected_name}:
+    if set(files) != {expected_name}:
         raise TrainingError("Checkpoint payload inventory differs")
-    for name, expected in metadata["files"].items():
-        if Path(name).name != name or digest(path / name) != expected:
+    for name, expected in files.items():
+        payload = path / name
+        if Path(name).name != name or not payload.is_file():
+            raise TrainingError("Checkpoint payload is missing")
+        if digest(payload) != expected:
             raise TrainingError("Checkpoint payload hash mismatch")
     return step

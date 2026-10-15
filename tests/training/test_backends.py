@@ -132,6 +132,41 @@ def test_bad_batches_and_corrupt_checkpoints_fail_before_update(
         stream.write(b"broken")
     with pytest.raises(TrainingError, match="hash mismatch"):
         client.load_state(checkpoint.path)
+    with pytest.raises(TrainingError, match="recorded digest"):
+        client.load_state(checkpoint.path, "0" * 64)
+    (checkpoint.path / "manifest.json").write_text("{}")
+    with pytest.raises(TrainingError, match="malformed"):
+        client.load_state(checkpoint.path)
+    (checkpoint.path / "manifest.json").write_text("not json")
+    with pytest.raises(TrainingError, match="malformed"):
+        client.load_state(checkpoint.path)
+    np.testing.assert_array_equal(weights(), before)
+
+
+def test_checkpoint_round_trip_accepts_recorded_digest(
+    client_factory, tmp_path: Path
+) -> None:
+    client, _ = client_factory()
+    checkpoint = client.save_state(tmp_path / "state")
+    client.load_state(checkpoint.path, checkpoint.sha256)
+
+
+def test_failed_checkpoint_setup_releases_lock(
+    client_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import tempfile
+
+    client, _ = client_factory()
+
+    def fail(*args, **kwargs):
+        raise OSError("disk full")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(tempfile, "mkdtemp", fail)
+        with pytest.raises(OSError, match="disk full"):
+            client.save_state(tmp_path / "state")
+    assert not (tmp_path / ".state.lock").exists()
+    assert client.save_state(tmp_path / "state").path.is_dir()
 
 
 def test_fresh_group_seed_does_not_reuse_a_shifted_token_stream(client_factory) -> None:

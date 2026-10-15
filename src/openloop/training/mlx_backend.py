@@ -210,11 +210,15 @@ class MLXBackend:
             writer=write,
         )
 
-    def load_state(self, path: Path) -> None:
+    def load_state(self, path: Path, sha256: str | None = None) -> None:
         if self._gradients is not None:
             raise TrainingError("Restore only at an optimizer boundary")
         step = verify_checkpoint(
-            path, backend="mlx", model_hash=self._model_hash, params=self._params
+            path,
+            backend="mlx",
+            model_hash=self._model_hash,
+            params=self._params,
+            sha256=sha256,
         )
         arrays = self._mx.load(str(path / "state.safetensors"))
         parameters = self._utils.tree_unflatten(
