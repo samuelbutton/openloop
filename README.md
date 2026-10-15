@@ -13,7 +13,7 @@ execution remain planned. See the [loop guide](docs/LOOPS.md).
 
 ## Needs and evidence
 
-These are proposed needs, not requirements approved by Discovery Loop.
+These are proposed needs.
 [NEEDS.md](NEEDS.md#n1n10) preserves the evidence, confidence, design inferences,
 and acceptance checks for each row. A working component does not establish that
 its research goal has been achieved.
