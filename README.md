@@ -1,6 +1,74 @@
 # openloop
 
-An experiment workbench, starting with Apple silicon environment calibration.
+Openloop is an experiment workbench for automated research. It records what ran,
+checks whether a gain survives fresh seeds and held-out evaluation, and gives
+agents and researchers the same tools to inspect the evidence.
+
+The core has four parts: a content-addressed ledger, an `Env`-shaped loop
+interface, executors, and a decider. Allocation, proposal and implementation,
+research memory, agent tools, and the UI are plugins. See [DESIGN.md](DESIGN.md).
+The current loops are planted truth (T0), MLX pretraining (T1), and recorded
+NAS-Bench-201/HPO-B outcomes (T4). T2 post-training, T3 data mixtures, and cloud
+execution remain planned. See the [loop guide](docs/LOOPS.md).
+
+## Needs and evidence
+
+These are proposed needs.
+[NEEDS.md](NEEDS.md#n1n10) preserves the evidence, confidence, design inferences,
+and acceptance checks for each row. A working component does not establish that
+its research goal has been achieved.
+
+| ID | Need | Current evidence or implementation |
+| --- | --- | --- |
+| N1 | Make every experiment traceable and reproducible. | [Immutable ledger, provenance, cache and drift probe](docs/LEDGER.md). |
+| N2 | Check whether an improvement is real before using it. | [Noise-aware decisions](docs/DECIDER.md); measured S1 evidence below. |
+| N3 | Direct parallel compute toward useful experiments. | [Five allocator policies](docs/ALLOCATORS.md) and [mock replay](docs/MOCK_EXECUTOR.md). Policy performance and native scale remain unmeasured. |
+| N4 | Connect architecture, data, evaluation, and training loops. | [Shared loop contract](docs/LOOPS.md) and [T4 adapters](docs/T4.md). T3 composition remains planned. |
+| N5 | Reduce time from hypothesis to verified decision. | [Stage timestamps](docs/LEDGER.md) and [researcher UI](docs/UI.md). Researcher time savings remain unmeasured. |
+| N6 | Let agents operate while people set direction. | [Agent toolbelt](docs/TOOLBELT.md) and [proposer/implementer operators](docs/OPERATORS.md). |
+| N7 | Use verified history to select the next experiment. | [Research memory](docs/MEMORY.md). Its effect on research progress remains unmeasured. |
+| N8 | Contain autonomous experiment code. | [Docker execution with network denied by default](docs/EXECUTORS.md). A Git worktree alone is not a security boundary. |
+| N9 | Keep the core small and stable. | [Core and plugin boundaries](DESIGN.md#core-and-plugins). |
+| N10 | Support Google Cloud execution. | [Proposed executor design](DESIGN.md#executors). No production GCP backend is implemented. |
+
+## S1: measured noise and an early audit
+
+![S1: legacy AdamW sample SD is 0.0407/0.0345 BPB at a fixed seed and 0.0181/0.0267 across seeds at 8m/21m tokens. A separate five-seed public-winner audit has mean held-out gain +0.01583 BPB, 95% t interval +0.00547 to +0.02619, and five seed wins.](docs/figures/s1-summary.png)
+
+The [70-run calibration report](research/s1/run-2026-10-11/report.json) records
+20 baseline runs per fidelity and 30 candidate-ranking runs. Screen/full
+Spearman correlation was **0.60**, with a descriptive matched-seed bootstrap
+95% interval of **[0.2571, 0.8857]**. These measurements apply to the legacy AdamW
+recipe, not the [current shared recipe](src/openloop/loops/recipes/m4_pro_v1/README.md).
+
+The separate [public-claims audit](research/s1-part2/README.md) compares published
+winner `1d83776` with parent `bc5cdc1` on ClimbMix. The
+[final five-pair report](research/s1-part2/run-heldout-2026-10-13d/heldout-report.json)
+records **+0.01583 BPB mean held-out gain**, a **95% t interval of
+[+0.00547, +0.02619]**, and **5/5 seed wins** (one-sided exact sign p = 0.03125).
+It met the audit's amended replication rule. This is one lineage on one machine;
+it is not an estimate of the fraction of all public claims that replicate.
+The four reconstructed discards were indistinguishable from the winner under
+the audit comparisons. The reports retain failures, exclusions, and amendments.
+The figure uses the final five pairs, not the superseded four-pair estimate.
+
+Rebuild this one figure from the recorded JSON inputs (no training or API calls):
+
+```sh
+uv run --script research/render_s1_figure.py
+```
+
+The script pins its plotting dependency and embeds input SHA-256 hashes in the
+PNG and [SVG](docs/figures/s1-summary.svg). The two panels use different recipes,
+datasets, budgets, and analyses; their scores must not be pooled.
+
+## Planned studies
+
+[PROTOCOL.md](PROTOCOL.md) fixes S2 allocation, S3 memory ablation, S4 evaluation
+overfit detection, S5 loop composition, and S6 scale transfer. Commit the protocol
+and each study's complete run manifest before collecting its study evidence.
+Study execution and spending need separate approval. The protocol records the
+missing T3, T2, CUDA, and held-out isolation prerequisites.
 
 ## Development
 
