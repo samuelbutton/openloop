@@ -91,7 +91,7 @@ It does not require a message broker or a distributed database.
 | Decision policies | Supply versioned thresholds and calculations through the decider contract. | N2 |
 | Research memory | Derive findings, failed hypotheses, and evidence counts from ledger records. | N7 |
 | Agent toolbelt | V0 exposes run diffs, validation metric queries, and committed repository maps through Python and MCP stdio. Hypothesis status and replication requests remain planned. | N6 |
-| Researcher UI | Show lineage, measurements, costs, stage times, and pending approvals. Link each conclusion to evidence. | N5, N6 |
+| Researcher UI | V0 shows selection lineage, endpoint curves with seed variation bands, recorded stage times, and run diffs. Costs and approval queues remain planned. See [UI guide](docs/UI.md). | N5, N6 |
 
 The proposer receives research evidence through ledger queries.
 Failed runs remain available as diagnostic evidence.
