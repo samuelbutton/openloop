@@ -293,3 +293,11 @@ Truncation is therefore an explicit choice now.
 `query_all` is the only unbounded read, and `query` cannot be called without a `limit`.
 Both share one ordering (submission order) and one SQL statement, so pages concatenate to the `query_all` result absent concurrent writes.
 `query_all` reads ids and runs inside one read transaction, so it is a consistent snapshot.
+
+## Row export
+
+`Ledger.export_rows()` returns canonical JSON with `export_version`,
+`schema_version`, and all stored table rows. One read transaction covers the export.
+It preserves stored IDs and JSON text. It does not add submissions or observations.
+The [batch runner](BATCH.md) archives these rows without merging SQLite files.
+The export includes held-out evidence. Restrict access as for the source ledger.
