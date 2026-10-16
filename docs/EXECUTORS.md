@@ -253,5 +253,7 @@ Delete `.pytest_cache/sandbox` afterwards.
 The [mock executor](MOCK_EXECUTOR.md) replays explicit recorded durations and outcomes on a virtual clock.
 It implements the same methods, including `wait_any`, and returns receipts labeled as simulated.
 It models worker slots and GPU lanes, and it draws recordings with replacement unless asked for an exact replay.
-The executors have no durable queue, cloud backend, or container-escape audit.
+Executor ownership remains in memory. The separate [finite batch runner](BATCH.md)
+persists command receipts and returns ledger rows. It is not a cloud backend.
+There is no container-escape audit.
 No native T1 training was run for this change.

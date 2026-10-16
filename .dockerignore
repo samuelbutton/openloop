@@ -1,0 +1,10 @@
+# Explicit allowlist prevents credentials, local data, and frozen ledgers entering context.
+*
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!LICENSE
+!src/
+!src/**
+**/__pycache__
+**/*.pyc

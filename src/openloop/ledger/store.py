@@ -47,6 +47,7 @@ from .schema import (
     supports_activity,
 )
 from .validation import (
+    JSONValue,
     check_digest,
     check_positive,
     check_text,
@@ -118,6 +119,36 @@ class Ledger:
 
     def close(self) -> None:
         self._db.close()
+
+    def export_rows(self) -> str:
+        """Return all stored rows as canonical JSON in one read transaction.
+
+        This versioned transport preserves stored IDs, timestamps, JSON text,
+        cache aliases, and plugin evidence. It is not a submission or an import.
+        The caller must protect held-out rows as it protects the source ledger.
+        """
+        tables: dict[str, JSONValue] = {}
+        with self._transaction(write=False):
+            names = self._db.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' "
+                "AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            ).fetchall()
+            for item in names:
+                # Identifiers come from SQLite, not arguments; quote embedded quotes.
+                name = str(item["name"])
+                quoted = '"' + name.replace('"', '""') + '"'
+                rows = [
+                    plain(dict(row))
+                    for row in self._db.execute(f"SELECT * FROM {quoted}")
+                ]
+                tables[name] = sorted(rows, key=canonical_json)
+        return canonical_json(
+            {
+                "export_version": 1,
+                "schema_version": self.schema_version,
+                "tables": tables,
+            }
+        )
 
     def record_activity(
         self,

@@ -281,6 +281,10 @@ The container executor uses a pinned local Docker image.
 Its source and explicit inputs are read-only. Temporary writes stay in the container, and
 the candidate can write limited, hashed files to an outputs directory.
 Executor ownership and idempotency remain in memory.
+The [finite batch runner](docs/BATCH.md) persists reviewed command receipts.
+It drains a fixed queue, exports ledger rows through the public API, and syncs
+immutable return bundles to a mounted directory. A host SSH script can fetch them.
+It does not merge ledgers, provision cloud machines, or port MLX to CUDA.
 The [executor guide](docs/EXECUTORS.md) gives the limits and failure semantics.
 RunPod remains unused until a GPU workload is approved.
 The mock executor uses explicit recording sequences and does not execute commands.
